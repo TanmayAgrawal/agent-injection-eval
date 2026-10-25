@@ -1,0 +1,11 @@
+{
+  "id": "M0-hosted-example",
+  "mitigation": "M0",
+  "model": "replace-with-a-versioned-model-id",
+  "temperature": 0.7,
+  "max_steps": 3,
+  "prompt_file": "configs/prompts/M0.txt",
+  "tools_version": "0.2",
+  "policy_version": "intent-binding-v1"
+}
+

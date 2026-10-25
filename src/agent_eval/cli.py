@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from .replay import replay_records
@@ -28,6 +29,30 @@ def command_record(args: argparse.Namespace) -> int:
     )
     count = write_jsonl(records, root / args.output)
     print(json.dumps({"command": "record", "records": count, "output": args.output}))
+    return 0
+
+
+def command_record_suite(args: argparse.Namespace) -> int:
+    root = project_root()
+    records = []
+    for config in args.config:
+        records.extend(
+            record_runs(
+                root=root,
+                scenario_path=root / args.scenarios,
+                config_path=root / config,
+                repetitions=args.repetitions,
+                adapter_kind=args.adapter,
+                scenario_ids=set(args.scenario) if args.scenario else None,
+                allow_dirty=args.allow_dirty,
+            )
+        )
+    count = write_jsonl(records, root / args.output)
+    print(
+        json.dumps(
+            {"command": "record-suite", "configs": args.config, "records": count, "output": args.output}
+        )
+    )
     return 0
 
 
@@ -110,12 +135,13 @@ def command_report(args: argparse.Namespace) -> int:
             ):
                 examples.append(index)
                 break
+    trace_link = os.path.relpath(root / args.input, start=(root / args.output).parent)
     write_report_files(
         summary,
         gate,
         root / args.output,
         root / args.finding,
-        args.input,
+        trace_link,
         examples,
         adapter_kind,
     )
@@ -135,6 +161,16 @@ def build_parser() -> argparse.ArgumentParser:
     record.add_argument("--scenario", action="append")
     record.add_argument("--allow-dirty", action="store_true")
     record.set_defaults(func=command_record)
+
+    suite = subparsers.add_parser("record-suite", help="record multiple committed configs into one trace set")
+    suite.add_argument("--config", action="append", required=True)
+    suite.add_argument("--scenarios", default="scenarios/scenarios.json")
+    suite.add_argument("--output", required=True)
+    suite.add_argument("--repetitions", type=int, default=10)
+    suite.add_argument("--adapter", choices=["scripted", "hosted"], default="scripted")
+    suite.add_argument("--scenario", action="append")
+    suite.add_argument("--allow-dirty", action="store_true")
+    suite.set_defaults(func=command_record_suite)
 
     replay = subparsers.add_parser("replay", help="re-run parsing, policy, mocked tools, and grading")
     replay.add_argument("--input", required=True)

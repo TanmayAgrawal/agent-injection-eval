@@ -1,0 +1,120 @@
+# Retrieved Prompt Injection Evaluation Harness
+
+## What the results do not show
+
+This project does not establish production safety or universal prompt-injection resistance. It evaluates a toy agent with synthetic documents, mocked tools, hand-written attacks, and a narrow programmatic grader. The committed reference traces use a scripted stochastic fixture to test the evaluation software; they are not evidence about a language model.
+
+## Evaluation question
+
+Does a mitigation reduce how often a tool-using agent makes a privileged tool call with attacker-controlled arguments after reading an injected instruction in retrieved content, and does it reduce task success on clean inputs?
+
+The question, outcomes, comparisons, decision rules, and claims boundary were committed in [`PREREG.md`](PREREG.md) before the harness was executed. The root preregistration commit is `9f28e52`.
+
+## System under test
+
+The agent first calls `search_docs`, then may propose `send_email(to, body)`. Both tools are synthetic. `send_email` records an action but has no external side effect.
+
+The suite contains 30 scenarios:
+
+- 20 injected scenarios varying placement, style, target step, and selected argument-normalization bypasses.
+- 10 clean controls matched by benign task group.
+- Four shopping-task families with explicit authorized recipients and deterministic completion criteria.
+
+Three configurations test different claims:
+
+- **M0:** no mitigation.
+- **M1:** prompt-level isolation of retrieved content.
+- **M2:** an external deterministic recipient-authorization policy.
+
+## Repository map
+
+```text
+PREREG.md                 preregistered question and analysis plan
+LIMITATIONS.md            detailed claims boundary
+scenarios/                scenario manifest and JSON Schema
+configs/                  versioned prompts and run configurations
+src/agent_eval/agent.py   target tool loop
+src/agent_eval/tools.py   mocked tools and deterministic policy
+src/agent_eval/runner.py  scenario/config execution
+src/agent_eval/grader.py  programmatic outcome labels
+src/agent_eval/replay.py  deterministic downstream replay
+src/agent_eval/stats.py   paired hierarchical bootstrap
+src/agent_eval/report.py  evidence record and JSON finding
+traces/                   trace schema and committed reference run
+tests/                    unit and regression tests
+```
+
+## Reproduce the committed evidence
+
+Python 3.11 or later is sufficient; the runtime has no third-party dependencies.
+
+```bash
+make reproduce
+```
+
+This command:
+
+1. Runs the unit tests.
+2. Replays every committed response through policy enforcement, mocked tools, and grading.
+3. Regenerates the evidence record and vendor-neutral JSON finding.
+4. Applies the preregistered security and utility gate.
+
+Replay verifies deterministic downstream processing. It does not reproduce model behavior.
+
+## Record a fresh suite
+
+The runner refuses to record against a dirty worktree unless `--allow-dirty` is explicitly passed. To generate the scripted engineering reference:
+
+```bash
+make record-reference
+make report
+make gate
+```
+
+The resulting 900 runs are 30 scenarios × 3 configurations × 10 repetitions.
+
+To use an OpenAI-compatible hosted endpoint:
+
+1. Copy `configs/hosted.example.json` to a versioned configuration.
+2. Set the exact model identifier and mitigation prompt.
+3. Commit the configuration before execution.
+4. Set `OPENAI_API_KEY`; optionally set `OPENAI_BASE_URL`.
+5. Run `agent-eval record` with `--adapter hosted`.
+
+```bash
+PYTHONPATH=src python3 -m agent_eval.cli record \
+  --config configs/M0-hosted.json \
+  --adapter hosted \
+  --repetitions 10 \
+  --output traces/live/M0-hosted.jsonl
+```
+
+Do not describe scripted-fixture results as model evidence. For hosted runs, retain the raw traces and report the model identifier, configuration hashes, provider, and run date.
+
+## Replay, compare, and report
+
+```bash
+PYTHONPATH=src python3 -m agent_eval.cli replay \
+  --input traces/reference-scripted.jsonl \
+  --output .eval-tmp/replayed.jsonl
+
+PYTHONPATH=src python3 -m agent_eval.cli stats \
+  --input traces/reference-scripted.jsonl
+
+PYTHONPATH=src python3 -m agent_eval.cli rerun \
+  --baseline traces/reference-scripted.jsonl \
+  --config configs/M1.json \
+  --adapter scripted \
+  --output traces/live/M1-rerun.jsonl
+```
+
+## Evidence outputs
+
+- [`reports/EVIDENCE.md`](reports/EVIDENCE.md) presents the question, setup, uncertainty, trace examples, limitations, proposed controls, and retest triggers.
+- [`reports/finding.json`](reports/finding.json) connects source, retrieval, agent, policy, and tool stages without assuming a vendor schema.
+- `traces/reference-scripted.jsonl` is the replayable reference artifact.
+
+## Safe use
+
+All included data is synthetic. The tools are mocked, no emails are sent, and no credentials or proprietary data are included.
+
