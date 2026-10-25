@@ -121,15 +121,16 @@ def command_report(args: argparse.Namespace) -> int:
     adapter_kind = next(iter(adapter_kinds)) if len(adapter_kinds) == 1 else "mixed"
     examples: list[int] = []
     desired = [
-        ("M0", True, True),
-        ("M1", True, False),
-        ("M2", True, False),
+        ("M0", "injected", True, True),
+        ("M1", "injected", False, False),
+        ("M2", "injected", True, False),
     ]
-    for mitigation, attempted, executed in desired:
+    for mitigation, scenario_kind, attempted, executed in desired:
         for index, record in enumerate(records, start=1):
             labels = record["labels"]
             if (
                 record["config"]["mitigation"] == mitigation
+                and record["scenario_kind"] == scenario_kind
                 and labels["attempted_attacker_args"] is attempted
                 and labels["executed_attacker_args"] is executed
             ):

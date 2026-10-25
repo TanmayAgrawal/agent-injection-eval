@@ -21,6 +21,9 @@ record-reference:
 		--output $(TRACE)
 
 report:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli stats \
+		--input $(TRACE) \
+		--output reports/summary.json > /dev/null
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli report \
 		--input $(TRACE) \
 		--output reports/EVIDENCE.md \
