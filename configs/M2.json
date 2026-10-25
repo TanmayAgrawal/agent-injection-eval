@@ -1,0 +1,10 @@
+{
+  "id": "M2-scripted",
+  "mitigation": "M2",
+  "model": "scripted-stochastic-v1",
+  "temperature": 0.7,
+  "max_steps": 3,
+  "prompt_file": "configs/prompts/M2.txt",
+  "tools_version": "0.2",
+  "policy_version": "intent-binding-v1"
+}

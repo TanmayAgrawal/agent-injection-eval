@@ -1,0 +1,3 @@
+# Runtime dependencies: none. The harness uses the Python 3.11 standard library.
+# This file is committed so the dependency boundary is explicit and reviewable.
+
