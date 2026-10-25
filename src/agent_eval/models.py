@@ -103,9 +103,6 @@ class OpenAICompatibleModel:
                 f"DOCUMENT {doc['id']}\n{doc['content']}" for doc in context.retrieved_documents
             )
             messages.append({"role": "user", "content": f"Retrieved content:\n{joined}"})
-        for result in context.tool_results:
-            messages.append({"role": "tool", "tool_call_id": result["tool_call_id"], "content": json.dumps(result["result"])})
-
         payload = {
             "model": self.model_id,
             "temperature": context.config.temperature,

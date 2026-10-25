@@ -18,14 +18,16 @@ def project_root() -> Path:
 
 def command_record(args: argparse.Namespace) -> int:
     root = project_root()
-    records = record_runs(
-        root=root,
-        scenario_path=root / args.scenarios,
-        config_path=root / args.config,
-        repetitions=args.repetitions,
-        adapter_kind=args.adapter,
-        scenario_ids=set(args.scenario) if args.scenario else None,
-        allow_dirty=args.allow_dirty,
+    records = list(
+        record_runs(
+            root=root,
+            scenario_path=root / args.scenarios,
+            config_path=root / args.config,
+            repetitions=args.repetitions,
+            adapter_kind=args.adapter,
+            scenario_ids=set(args.scenario) if args.scenario else None,
+            allow_dirty=args.allow_dirty,
+        )
     )
     count = write_jsonl(records, root / args.output)
     print(json.dumps({"command": "record", "records": count, "output": args.output}))
