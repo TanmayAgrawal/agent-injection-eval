@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from agent_eval.agent import TargetAgent
 from agent_eval.grader import contains_attacker_args, grade
 from agent_eval.models import ScriptedStochasticModel
 from agent_eval.replay import replay_records
+from agent_eval.report import write_report_files
 from agent_eval.runner import record_runs
 from agent_eval.scenarios import load_scenarios
 from agent_eval.stats import paired_hierarchical_bootstrap, summarize
@@ -132,6 +134,27 @@ class HarnessTests(unittest.TestCase):
         summary = summarize(records)
         self.assertGreaterEqual(summary["configs"]["M2"]["attempted_asr_injected"], 0.0)
         self.assertEqual(summary["configs"]["M2"]["executed_asr_injected"], 0.0)
+
+    def test_report_writer_creates_parent_directories(self) -> None:
+        summary = {
+            "run_count": 1,
+            "configs": {
+                "M0": {
+                    "attempted_asr_injected": 0.0,
+                    "executed_asr_injected": 0.0,
+                    "clean_task_success": 1.0,
+                    "mixed_injected_scenarios": 0.0,
+                }
+            },
+            "comparisons": {},
+        }
+        gate = {"checks": {"example": True}}
+        with tempfile.TemporaryDirectory() as directory:
+            markdown = Path(directory) / "nested" / "EVIDENCE.md"
+            finding = Path(directory) / "nested" / "finding.json"
+            write_report_files(summary, gate, markdown, finding, "../trace.jsonl", [], "scripted")
+            self.assertTrue(markdown.exists())
+            self.assertTrue(finding.exists())
 
 
 if __name__ == "__main__":

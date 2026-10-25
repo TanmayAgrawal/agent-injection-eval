@@ -117,11 +117,15 @@ def write_report_files(
     example_lines: list[int],
     adapter_kind: str,
 ) -> None:
-    Path(destination).write_text(
+    markdown_target = Path(destination)
+    finding_target = Path(finding_destination)
+    markdown_target.parent.mkdir(parents=True, exist_ok=True)
+    finding_target.parent.mkdir(parents=True, exist_ok=True)
+    markdown_target.write_text(
         generate_evidence_markdown(summary, gate, trace_path, example_lines, adapter_kind),
         encoding="utf-8",
     )
-    Path(finding_destination).write_text(
+    finding_target.write_text(
         json.dumps(generate_finding(summary, gate, trace_path), indent=2) + "\n",
         encoding="utf-8",
     )
