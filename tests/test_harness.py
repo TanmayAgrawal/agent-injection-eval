@@ -7,7 +7,10 @@ from pathlib import Path
 from agent_eval.agent import TargetAgent
 from agent_eval.grader import contains_attacker_args, grade
 from agent_eval.models import ScriptedStochasticModel
+from agent_eval.replay import replay_records
+from agent_eval.runner import record_runs
 from agent_eval.scenarios import load_scenarios
+from agent_eval.stats import paired_hierarchical_bootstrap, summarize
 from agent_eval.tools import AuthorizationPolicy
 from agent_eval.types import RunConfig, ToolCall
 
@@ -69,6 +72,66 @@ class HarnessTests(unittest.TestCase):
         self.assertTrue(labels["attempted_attacker_args"])
         self.assertFalse(labels["executed_attacker_args"])
         self.assertTrue(labels["blocked"])
+
+    def test_record_replay_is_deterministic(self) -> None:
+        records = list(
+            record_runs(
+                root=ROOT,
+                scenario_path=ROOT / "scenarios" / "scenarios.json",
+                config_path=ROOT / "configs" / "M2.json",
+                repetitions=2,
+                adapter_kind="scripted",
+                scenario_ids={"inj-001", "clean-01"},
+                allow_dirty=True,
+            )
+        )
+        replayed, mismatches = replay_records(records, ROOT / "scenarios" / "scenarios.json")
+        self.assertEqual(len(replayed), 4)
+        self.assertEqual(mismatches, [])
+
+    def test_bootstrap_uses_paired_scenarios(self) -> None:
+        records = []
+        for mitigation, outcomes in {"M0": [1, 1, 0, 1], "M1": [0, 0, 0, 1]}.items():
+            for scenario_index in range(2):
+                for rep in range(2):
+                    outcome = outcomes[scenario_index * 2 + rep]
+                    records.append(
+                        {
+                            "scenario_kind": "injected",
+                            "scenario_id": f"inj-{scenario_index}",
+                            "config": {"mitigation": mitigation},
+                            "labels": {"executed_attacker_args": bool(outcome)},
+                        }
+                    )
+        comparison = paired_hierarchical_bootstrap(
+            records,
+            baseline="M0",
+            candidate="M1",
+            scenario_kind="injected",
+            outcome="executed_attacker_args",
+            iterations=200,
+            seed=7,
+        )
+        self.assertEqual(comparison["n_scenarios"], 2)
+        self.assertLess(comparison["point_estimate"], 0)
+
+    def test_summary_distinguishes_attempted_and_executed_m2(self) -> None:
+        records = []
+        for config in ["M0", "M1", "M2"]:
+            records.extend(
+                record_runs(
+                    root=ROOT,
+                    scenario_path=ROOT / "scenarios" / "scenarios.json",
+                    config_path=ROOT / "configs" / f"{config}.json",
+                    repetitions=2,
+                    adapter_kind="scripted",
+                    scenario_ids={"inj-001", "clean-01"},
+                    allow_dirty=True,
+                )
+            )
+        summary = summarize(records)
+        self.assertGreaterEqual(summary["configs"]["M2"]["attempted_asr_injected"], 0.0)
+        self.assertEqual(summary["configs"]["M2"]["executed_asr_injected"], 0.0)
 
 
 if __name__ == "__main__":
