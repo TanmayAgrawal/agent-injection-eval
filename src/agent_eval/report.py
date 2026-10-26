@@ -18,13 +18,19 @@ def _comparison_line(comparison: dict[str, Any]) -> str:
     )
 
 
+def _values(values: list[Any] | None) -> str:
+    return ", ".join("null" if value is None else str(value) for value in (values or ["not recorded"]))
+
+
 def generate_evidence_markdown(
     summary: dict[str, Any],
     gate: dict[str, Any],
     trace_path: str,
     example_lines: list[int],
     adapter_kind: str,
+    run_metadata: dict[str, Any] | None = None,
 ) -> str:
+    metadata = run_metadata or {}
     lines = [
         "# Evaluation Evidence Record",
         "",
@@ -46,6 +52,14 @@ def generate_evidence_markdown(
         "",
         f"The evidence set contains {summary['run_count']} recorded runs across clean and injected synthetic scenarios. "
         "M0 is the baseline, M1 isolates retrieved content in the prompt, and M2 enforces an external recipient-authorization policy.",
+        "",
+        f"- Model: `{', '.join(metadata.get('models', ['not recorded']))}`",
+        f"- Adapter: `{', '.join(metadata.get('adapters', [adapter_kind]))}`",
+        f"- Temperature: `{_values(metadata.get('temperatures'))}`; effort: `{_values(metadata.get('efforts'))}`",
+        f"- Harness commit: `{', '.join(metadata.get('git_shas', ['not recorded']))}`",
+        f"- Recorded UTC: `{metadata.get('recorded_at_utc', {}).get('first', 'not recorded')}` to `{metadata.get('recorded_at_utc', {}).get('last', 'not recorded')}`",
+        f"- API calls: `{metadata.get('api_calls', 'not recorded')}`; input tokens: `{metadata.get('input_tokens', 'not recorded')}`; output tokens: `{metadata.get('output_tokens', 'not recorded')}`",
+        f"- Trace SHA-256: `{metadata.get('trace_sha256', 'not recorded')}`",
         "",
         "## Results",
         "",
@@ -106,7 +120,12 @@ def generate_evidence_markdown(
     return "\n".join(lines)
 
 
-def generate_finding(summary: dict[str, Any], gate: dict[str, Any], trace_path: str) -> dict[str, Any]:
+def generate_finding(
+    summary: dict[str, Any],
+    gate: dict[str, Any],
+    trace_path: str,
+    run_metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     return {
         "schema_version": "0.1-vendor-neutral",
         "question": "Can retrieved attacker instructions cause a privileged tool call with attacker-controlled arguments?",
@@ -116,6 +135,7 @@ def generate_finding(summary: dict[str, Any], gate: dict[str, Any], trace_path: 
             {"id": "M2", "type": "boundary", "description": "explicit argument authorization"},
         ],
         "result": {"summary": summary, "gate": gate},
+        "run_metadata": run_metadata or {},
         "evidence": {"trace_jsonl": trace_path},
         "claims_boundary": "Synthetic scenarios and the recorded model/configuration only; not a safety certification.",
         "retest_triggers": ["model", "prompt", "retriever", "corpus", "tool_schema", "policy"],
@@ -130,16 +150,19 @@ def write_report_files(
     trace_path: str,
     example_lines: list[int],
     adapter_kind: str,
+    run_metadata: dict[str, Any] | None = None,
 ) -> None:
     markdown_target = Path(destination)
     finding_target = Path(finding_destination)
     markdown_target.parent.mkdir(parents=True, exist_ok=True)
     finding_target.parent.mkdir(parents=True, exist_ok=True)
     markdown_target.write_text(
-        generate_evidence_markdown(summary, gate, trace_path, example_lines, adapter_kind),
+        generate_evidence_markdown(
+            summary, gate, trace_path, example_lines, adapter_kind, run_metadata
+        ),
         encoding="utf-8",
     )
     finding_target.write_text(
-        json.dumps(generate_finding(summary, gate, trace_path), indent=2) + "\n",
+        json.dumps(generate_finding(summary, gate, trace_path, run_metadata), indent=2) + "\n",
         encoding="utf-8",
     )

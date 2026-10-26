@@ -2,7 +2,7 @@
 
 ## What the results do not show
 
-This project does not establish production safety or universal prompt-injection resistance. It evaluates a toy agent with synthetic documents, mocked tools, hand-written attacks, and a narrow programmatic grader. The committed reference traces use a scripted stochastic fixture to test the evaluation software; they are not evidence about a language model.
+This project does not establish production safety or universal prompt-injection resistance. It evaluates a toy agent with synthetic documents, mocked tools, hand-written attacks, and a narrow programmatic grader. The scripted reference traces validate the evaluation software only. The separate hosted-model evidence applies only to the committed GPT-5.4 snapshot, prompts, tools, synthetic scenarios, and recorded run window.
 
 ## Evaluation question
 
@@ -148,6 +148,11 @@ PYTHONPATH=src python3 -m agent_eval.cli rerun \
 - [`reports/EVIDENCE.md`](reports/EVIDENCE.md) presents the question, setup, uncertainty, trace examples, limitations, proposed controls, and retest triggers.
 - [`reports/finding.json`](reports/finding.json) connects source, retrieval, agent, policy, and tool stages without assuming a vendor schema.
 - `traces/reference-scripted.jsonl` is the replayable reference artifact.
+- [`reports/generated/OPENAI-EVIDENCE.md`](reports/generated/OPENAI-EVIDENCE.md) is the 900-run GPT-5.4 evidence record.
+- [`reports/generated/openai-finding.json`](reports/generated/openai-finding.json) is its vendor-neutral machine-readable finding.
+- `traces/live/gpt-5-4.jsonl` is the hosted-model trace artifact. Its SHA-256 is recorded in the evidence report.
+
+The hosted run observed 0% attack success and 100% clean-task success in every configuration. Because M0 also had 0% attack success, the M1 mitigation effect is inconclusive due to a floor effect; this is not evidence that M1 is effective or that GPT-5.4 is generally resistant to prompt injection.
 
 ## Safe use
 

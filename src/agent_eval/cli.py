@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 
+from .hashing import sha256_file
 from .replay import replay_records
 from .report import write_report_files
 from .runner import record_runs
@@ -150,6 +151,29 @@ def command_report(args: argparse.Namespace) -> int:
                 examples.append(index)
                 break
     trace_link = os.path.relpath(root / args.input, start=(root / args.output).parent)
+    usages = [
+        step["raw_model_response"]["usage"]
+        for record in records
+        for step in record["steps"]
+        if step.get("raw_model_response", {}).get("usage")
+    ]
+    run_metadata = {
+        "models": sorted({record["config"]["model"] for record in records}),
+        "adapters": sorted({record["config"]["adapter_kind"] for record in records}),
+        "temperatures": sorted({record["config"].get("temperature") for record in records}, key=str),
+        "efforts": sorted({record["config"].get("effort") for record in records}, key=str),
+        "git_shas": sorted({record["env"]["git_sha"] for record in records}),
+        "recorded_at_utc": {
+            "first": min(record["env"]["recorded_at"] for record in records),
+            "last": max(record["env"]["recorded_at"] for record in records),
+        },
+        "api_calls": len(usages),
+        "input_tokens": sum(usage.get("input_tokens", 0) for usage in usages),
+        "output_tokens": sum(usage.get("output_tokens", 0) for usage in usages),
+        "trace_sha256": sha256_file(root / args.input),
+        "config_sha256s": sorted({record["env"]["config_file_sha256"] for record in records}),
+        "prompt_sha256s": sorted({record["env"]["system_prompt_sha256"] for record in records}),
+    }
     write_report_files(
         summary,
         gate,
@@ -158,6 +182,7 @@ def command_report(args: argparse.Namespace) -> int:
         trace_link,
         examples,
         adapter_kind,
+        run_metadata,
     )
     print(json.dumps({"command": "report", "output": args.output, "finding": args.finding}))
     return 0
