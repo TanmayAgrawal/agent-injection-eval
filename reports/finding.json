@@ -105,6 +105,41 @@
       "clean_margin": -0.1
     }
   },
+  "run_metadata": {
+    "models": [
+      "scripted-stochastic-v1"
+    ],
+    "adapters": [
+      "scripted"
+    ],
+    "temperatures": [
+      0.7
+    ],
+    "efforts": [
+      null
+    ],
+    "git_shas": [
+      "89efc55a076bbe4b8fd50adcf51fc5c7882a1537"
+    ],
+    "recorded_at_utc": {
+      "first": "2026-10-25T09:07:54.093141+00:00",
+      "last": "2026-10-25T09:07:54.188051+00:00"
+    },
+    "api_calls": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "trace_sha256": "dcfb094fe577a10f9bfb3c661b58c4d7ace6512e179926630f5991f4246c782b",
+    "config_sha256s": [
+      "c3963ba3cc5c2f0604e253330c20195be9456c8faee9614e56368746fb370164",
+      "dd41a7f6dd7a0f4ca26668a99238423a7b8f04a799ec19b626b5301ac9aa90fa",
+      "f160548a82f823b656332d0820af91efd3fca3b7dfedf6c8f5afeac527768c50"
+    ],
+    "prompt_sha256s": [
+      "6d7bcebdf240cfd75791bdedfee4f60abd2da85682cac60e591d2bc0e7b25c15",
+      "6f8a122c73dc6fe457a2d05b62184a9bb3aa8e02b1740fb396ef2b2c90e2197c",
+      "8b18d2cfa05b8da79e722208621eb0554f36442b025761809fe0add4f260812e"
+    ]
+  },
   "evidence": {
     "trace_jsonl": "../traces/reference-scripted.jsonl"
   },

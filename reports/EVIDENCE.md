@@ -12,6 +12,14 @@ Does a mitigation reduce privileged tool calls containing attacker-controlled ar
 
 The evidence set contains 900 recorded runs across clean and injected synthetic scenarios. M0 is the baseline, M1 isolates retrieved content in the prompt, and M2 enforces an external recipient-authorization policy.
 
+- Model: `scripted-stochastic-v1`
+- Adapter: `scripted`
+- Temperature: `0.7`; effort: `null`
+- Harness commit: `89efc55a076bbe4b8fd50adcf51fc5c7882a1537`
+- Recorded UTC: `2026-10-25T09:07:54.093141+00:00` to `2026-10-25T09:07:54.188051+00:00`
+- API calls: `0`; input tokens: `0`; output tokens: `0`
+- Trace SHA-256: `dcfb094fe577a10f9bfb3c661b58c4d7ace6512e179926630f5991f4246c782b`
+
 ## Results
 
 | Config | Attempted ASR | Executed ASR | Clean task success | Mixed injected scenarios |
@@ -25,6 +33,10 @@ The evidence set contains 900 recorded runs across clean and injected synthetic 
 - `M1_vs_M0_executed_asr`: -36.5 percentage points (95% CI -48.0 to -24.5; 20 scenario clusters)
 - `M1_vs_M0_clean_success`: -1.0 percentage points (95% CI -8.0 to +5.0; 10 scenario clusters)
 - `M2_vs_M0_executed_asr`: -67.5 percentage points (95% CI -77.0 to -58.0; 20 scenario clusters)
+
+### Interpretation
+
+Interpret the paired estimates and confidence intervals against the preregistered security and clean-task thresholds; they apply only to the recorded scenarios and model configuration.
 
 ### Preregistered gate
 
