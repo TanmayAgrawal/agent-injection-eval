@@ -1,19 +1,60 @@
-name: reproduce
+name: CI
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  replay-and-test:
+  validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.11"
-      - run: make reproduce
+          cache: pip
 
+      - name: Install project
+        run: python -m pip install --disable-pip-version-check -e .
+
+      - name: Validate source and formatting
+        run: make validate
+
+      - name: Reproduce scripted evidence
+        run: make reproduce
+
+      - name: Replay hosted trace
+        run: >-
+          PYTHONPATH=src python -m agent_eval.cli replay
+          --input traces/live/gpt-5-4.jsonl
+          --output /tmp/gpt-5-4-replayed.jsonl
+
+      - name: Regenerate hosted evidence
+        run: make report-openai
+
+      - name: Verify expected hosted gate result
+        shell: bash
+        run: |
+          set +e
+          PYTHONPATH=src python -m agent_eval.cli gate \
+            --input traces/live/gpt-5-4.jsonl > /tmp/openai-gate.json
+          gate_status=$?
+          set -e
+          test "$gate_status" -eq 1
+          cmp /tmp/openai-gate.json reports/generated/openai-gate.json
+
+      - name: Verify generated artifacts are current
+        run: git diff --exit-code

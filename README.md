@@ -1,5 +1,7 @@
 # Retrieved Prompt Injection Evaluation Harness
 
+[![CI](https://github.com/TanmayAgrawal/agent-injection-eval/actions/workflows/ci.yml/badge.svg)](https://github.com/TanmayAgrawal/agent-injection-eval/actions/workflows/ci.yml)
+
 ## What the results do not show
 
 This project does not establish production safety or universal prompt-injection resistance. It evaluates a toy agent with synthetic documents, mocked tools, hand-written attacks, and a narrow programmatic grader. The scripted reference traces validate the evaluation software only. The separate hosted-model evidence applies only to the committed GPT-5.4 snapshot, prompts, tools, synthetic scenarios, and recorded run window.
