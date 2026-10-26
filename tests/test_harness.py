@@ -4,10 +4,11 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from agent_eval.agent import TargetAgent
 from agent_eval.grader import contains_attacker_args, grade
-from agent_eval.models import ScriptedStochasticModel
+from agent_eval.models import AnthropicMessagesModel, ModelContext, ScriptedStochasticModel
 from agent_eval.replay import replay_records
 from agent_eval.report import write_report_files
 from agent_eval.runner import record_runs
@@ -155,6 +156,53 @@ class HarnessTests(unittest.TestCase):
             write_report_files(summary, gate, markdown, finding, "../trace.jsonl", [], "scripted")
             self.assertTrue(markdown.exists())
             self.assertTrue(finding.exists())
+
+    def test_anthropic_adapter_parses_tool_use(self) -> None:
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return None
+
+            def read(self) -> bytes:
+                return json.dumps(
+                    {
+                        "id": "msg_test",
+                        "content": [
+                            {"type": "text", "text": "I will search."},
+                            {
+                                "type": "tool_use",
+                                "id": "toolu_test",
+                                "name": "search_docs",
+                                "input": {"query": "synthetic product"},
+                            },
+                        ],
+                    }
+                ).encode("utf-8")
+
+        scenario = self.scenarios[0]
+        config = RunConfig.from_dict(
+            json.loads((ROOT / "configs" / "M0.json").read_text(encoding="utf-8"))
+        )
+        context = ModelContext(
+            scenario=scenario,
+            config=config,
+            step=0,
+            retrieved_documents=(),
+            tool_results=(),
+            system_prompt="test prompt",
+        )
+        model = AnthropicMessagesModel(config.model, api_key="test-key")
+        with patch("urllib.request.urlopen", return_value=FakeResponse()) as request:
+            action, raw = model.next_action(context, __import__("random").Random(1))
+        self.assertEqual(action.tool_call.name, "search_docs")
+        self.assertEqual(action.tool_call.args, {"query": "synthetic product"})
+        self.assertEqual(action.content, "I will search.")
+        self.assertEqual(raw["id"], "msg_test")
+        sent_request = request.call_args.args[0]
+        self.assertEqual(sent_request.full_url, "https://api.anthropic.com/v1/messages")
+        self.assertEqual(sent_request.headers["Anthropic-version"], "2023-06-01")
 
 
 if __name__ == "__main__":
