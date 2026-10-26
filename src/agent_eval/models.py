@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import http.client
 import os
 import random
 import time
@@ -267,9 +268,10 @@ class OpenAIResponsesModel:
                 except ValueError:
                     delay = min(8.0, 2.0**attempt)
                 time.sleep(delay)
-            except urllib.error.URLError as error:
+            except (urllib.error.URLError, http.client.RemoteDisconnected, TimeoutError, ConnectionResetError) as error:
                 if attempt == attempts - 1:
-                    raise RuntimeError(f"OpenAI endpoint request failed: {error.reason}") from error
+                    reason = getattr(error, "reason", str(error))
+                    raise RuntimeError(f"OpenAI endpoint request failed: {reason}") from error
                 time.sleep(min(8.0, 2.0**attempt))
         raise AssertionError("unreachable")
 

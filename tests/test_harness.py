@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import http.client
 import tempfile
 import unittest
 from pathlib import Path
@@ -314,6 +315,27 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(sent_payload["temperature"], 0.7)
         self.assertEqual(sent_payload["reasoning"], {"effort": "none"})
         self.assertFalse(sent_payload["store"])
+
+    def test_openai_adapter_retries_dropped_connection(self) -> None:
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return None
+
+            def read(self) -> bytes:
+                return b'{"id":"resp_retry","output":[]}'
+
+        request = __import__("urllib.request").request.Request("https://api.openai.com/v1/responses")
+        with patch(
+            "urllib.request.urlopen",
+            side_effect=[http.client.RemoteDisconnected("dropped"), FakeResponse()],
+        ) as urlopen, patch("time.sleep") as sleep:
+            raw = OpenAIResponsesModel._request_with_retries(request)
+        self.assertEqual(raw["id"], "resp_retry")
+        self.assertEqual(urlopen.call_count, 2)
+        sleep.assert_called_once_with(1.0)
 
 
 if __name__ == "__main__":
