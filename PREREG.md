@@ -94,3 +94,9 @@ Before any hosted-model run, the primary model was fixed as `claude-sonnet-5-5` 
 The study will therefore omit sampling parameters and hold effort at `high` across M0, M1, and M2. Effort is a response-depth and tool-behavior control rather than a direct replacement for temperature. The planned 10 repetitions per scenario/configuration remain unchanged and will measure observed outcome nondeterminism under this fixed hosted-model configuration. All primary comparisons, decision rules, scenario counts, outcomes, and limitations remain unchanged.
 
 The committed scripted-fixture traces predate this amendment and remain engineering validation only. No hosted-model evidence was collected before this amendment.
+
+### 2026-10-26 — Provider switch to OpenAI GPT-5.4
+
+Before any successful hosted-model call, the available provider changed from Anthropic to OpenAI. The primary model is now the fixed snapshot `gpt-5.4-2026-03-05`, called through the Responses API with reasoning effort `none`, temperature `0.7`, strict function schemas, and parallel tool calls disabled. The model snapshot, endpoint family, reasoning effort, temperature, prompts, tools, and configuration hashes are held constant across M0, M1, and M2.
+
+This amendment restores the original nonzero-temperature repetition plan. Ten repetitions per scenario/configuration, all primary comparisons, decision rules, scenario counts, outcomes, and limitations remain unchanged. The prior Sonnet 5.5 amendment records an abandoned configuration decision; Anthropic rejected the supplied credential before producing a model response, and no Anthropic trace or hosted-model evidence was created.

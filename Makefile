@@ -2,8 +2,9 @@ PYTHON ?= python3
 PYTHONPATH := src
 TRACE := traces/reference-scripted.jsonl
 CLAUDE_TRACE := traces/live/claude-sonnet-5-5.jsonl
+OPENAI_TRACE := traces/live/gpt-5-4.jsonl
 
-.PHONY: test validate record-reference record-claude reproduce report report-claude gate gate-claude clean-generated
+.PHONY: test validate record-reference record-claude record-openai reproduce report report-claude report-openai gate gate-claude gate-openai clean-generated
 
 test:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m unittest discover -s tests -v
@@ -31,6 +32,16 @@ record-claude:
 		--adapter anthropic \
 		--output $(CLAUDE_TRACE)
 
+record-openai:
+	@test -n "$$OPENAI_API_KEY" || (echo "OPENAI_API_KEY is not set" && exit 1)
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli record-suite \
+		--config configs/M0-gpt-5-4.json \
+		--config configs/M1-gpt-5-4.json \
+		--config configs/M2-gpt-5-4.json \
+		--repetitions 10 \
+		--adapter openai \
+		--output $(OPENAI_TRACE)
+
 report:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli stats \
 		--input $(TRACE) \
@@ -49,11 +60,23 @@ report-claude:
 		--output reports/generated/CLAUDE-EVIDENCE.md \
 		--finding reports/generated/claude-finding.json
 
+report-openai:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli stats \
+		--input $(OPENAI_TRACE) \
+		--output reports/generated/openai-summary.json > /dev/null
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli report \
+		--input $(OPENAI_TRACE) \
+		--output reports/generated/OPENAI-EVIDENCE.md \
+		--finding reports/generated/openai-finding.json
+
 gate:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli gate --input $(TRACE)
 
 gate-claude:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli gate --input $(CLAUDE_TRACE)
+
+gate-openai:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli gate --input $(OPENAI_TRACE)
 
 reproduce: test
 	mkdir -p .eval-tmp

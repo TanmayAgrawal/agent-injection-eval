@@ -91,6 +91,21 @@ PYTHONPATH=src python3 -m agent_eval.cli record \
 
 Do not describe scripted-fixture results as model evidence. For hosted runs, retain the raw traces and report the model identifier, configuration hashes, provider, and run date.
 
+### Primary OpenAI run
+
+The primary live protocol uses the fixed `gpt-5.4-2026-03-05` snapshot through the Responses API. It holds reasoning effort at `none` so the preregistered `temperature: 0.7` sampling control remains valid. The adapter disables provider-side response storage, defines strict function schemas, prevents parallel tool calls, and records the raw response in each local trace.
+
+Keep the API key outside the repository:
+
+```bash
+export OPENAI_API_KEY="your-key"
+make record-openai
+make report-openai
+make gate-openai
+```
+
+This records 900 live runs in `traces/live/gpt-5-4.jsonl`. Inspect the ignored trace file before intentionally adding it as an evidence artifact.
+
 ### Anthropic run
 
 The committed Claude configurations use the fixed model ID `claude-sonnet-5-5` with adaptive thinking and `high` effort. Sonnet 5.5 rejects non-default temperature values, so the protocol amendment in `PREREG.md` replaces the original temperature plan before any hosted-model run. Repetitions measure observed nondeterminism; effort controls response depth and tool behavior rather than sampling randomness.

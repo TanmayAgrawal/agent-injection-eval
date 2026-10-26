@@ -1,0 +1,11 @@
+{
+  "id": "M0-gpt-5-4",
+  "mitigation": "M0",
+  "model": "gpt-5.4-2026-03-05",
+  "temperature": 0.7,
+  "effort": "none",
+  "max_steps": 3,
+  "prompt_file": "configs/prompts/M0.txt",
+  "tools_version": "0.2",
+  "policy_version": "intent-binding-v1"
+}
