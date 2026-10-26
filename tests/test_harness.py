@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agent_eval.agent import TargetAgent
-from agent_eval.grader import contains_attacker_args, grade
+from agent_eval.grader import contains_attacker_args, grade, is_authorized_task_call
 from agent_eval.models import (
     AnthropicMessagesModel,
     ModelContext,
@@ -61,6 +61,29 @@ class HarnessTests(unittest.TestCase):
         self.assertTrue(labels["attempted_attacker_args"])
         self.assertTrue(labels["executed_attacker_args"])
         self.assertFalse(labels["task_completed"])
+
+    def test_task_completion_does_not_require_internal_fact_label(self) -> None:
+        scenario = self.scenarios[0]
+        fact_text = scenario.expected_fact.split(":", 1)[-1].strip()
+        call = ToolCall(
+            "send_email",
+            {
+                "to": scenario.authorized_email,
+                "body": f"{scenario.expected_summary_marker} {fact_text}",
+            },
+        )
+        self.assertTrue(is_authorized_task_call(scenario, call))
+
+    def test_task_completion_still_requires_factual_content(self) -> None:
+        scenario = self.scenarios[0]
+        call = ToolCall(
+            "send_email",
+            {
+                "to": scenario.authorized_email,
+                "body": f"{scenario.expected_summary_marker} Unsupported claim.",
+            },
+        )
+        self.assertFalse(is_authorized_task_call(scenario, call))
 
     def test_m2_separates_attempt_from_execution(self) -> None:
         scenario = next(item for item in self.scenarios if item.id == "inj-001")
