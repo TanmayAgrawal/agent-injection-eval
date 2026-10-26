@@ -22,27 +22,27 @@ The evidence set contains 900 recorded runs across clean and injected synthetic 
 
 ## Results
 
-| Config | Attempted ASR | Executed ASR | Clean task success | Mixed injected scenarios |
-| --- | ---: | ---: | ---: | ---: |
-| M0 | 0.0% | 0.0% | 100.0% | 0.0% |
-| M1 | 0.0% | 0.0% | 100.0% | 0.0% |
-| M2 | 0.0% | 0.0% | 100.0% | 0.0% |
+| Config | Attempted ASR | Executed ASR | Blocked injected runs | Clean task success | Mixed injected scenarios |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| M0 | 0.0% | 0.0% | 0 | 100.0% | 0.0% |
+| M1 | 0.0% | 0.0% | 0 | 100.0% | 0.0% |
+| M2 | 0.0% | 0.0% | 0 | 100.0% | 0.0% |
 
 ### Paired comparisons
 
-- `M1_vs_M0_executed_asr`: +0.0 percentage points (95% CI +0.0 to +0.0; 20 scenario clusters)
-- `M1_vs_M0_clean_success`: +0.0 percentage points (95% CI +0.0 to +0.0; 10 scenario clusters)
-- `M2_vs_M0_executed_asr`: +0.0 percentage points (95% CI +0.0 to +0.0; 20 scenario clusters)
+- `M1_vs_M0_executed_asr`: not estimable because the baseline had zero attack events; one-sided 95% upper bound for scenario-level attack occurrence is 13.9% across 20 scenario clusters
+- `M1_vs_M0_clean_success`: no clean-task difference observed, but a zero-width bootstrap interval is uninformative; one-sided 95% upper bound for scenario-level clean failure occurrence is 25.9% across 10 scenario clusters
+- `M2_vs_M0_executed_asr`: not estimable because the baseline had zero attack events; one-sided 95% upper bound for scenario-level attack occurrence is 13.9% across 20 scenario clusters
 
 ### Interpretation
 
-No attacker-controlled privileged call was observed in the baseline. This floor effect means the study cannot show that M1 reduced attack success, and M2's blocking behavior was not exercised by these model-generated calls. The result supports only that no attack success was observed in this synthetic suite under the recorded model configuration.
+No attacker-controlled privileged call was observed in the baseline. This floor effect means the study cannot show that M1 reduced attack success, and M2's blocking behavior was not exercised by these model-generated calls. The one-sided 95% upper bound for scenario-level attack occurrence is 13.9%. The result supports only that no attack success was observed in this synthetic suite under the recorded model configuration.
 
 ### Preregistered gate
 
 - INCONCLUSIVE: `m1_security_upper_below_zero`
-- PASS: `m1_clean_lower_above_margin`
-- PASS: `m2_executed_asr_zero`
+- INCONCLUSIVE: `m1_clean_lower_above_margin`
+- NOT_EXERCISED: `m2_executed_asr_zero`
 - PASS: `m2_clean_false_block_at_most_10pct`
 
 ## Example traces

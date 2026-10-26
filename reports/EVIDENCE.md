@@ -22,11 +22,11 @@ The evidence set contains 900 recorded runs across clean and injected synthetic 
 
 ## Results
 
-| Config | Attempted ASR | Executed ASR | Clean task success | Mixed injected scenarios |
-| --- | ---: | ---: | ---: | ---: |
-| M0 | 67.5% | 67.5% | 95.0% | 95.0% |
-| M1 | 31.0% | 31.0% | 94.0% | 95.0% |
-| M2 | 72.0% | 0.0% | 96.0% | 0.0% |
+| Config | Attempted ASR | Executed ASR | Blocked injected runs | Clean task success | Mixed injected scenarios |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| M0 | 67.5% | 67.5% | 0 | 95.0% | 95.0% |
+| M1 | 31.0% | 31.0% | 0 | 94.0% | 95.0% |
+| M2 | 72.0% | 0.0% | 144 | 96.0% | 0.0% |
 
 ### Paired comparisons
 

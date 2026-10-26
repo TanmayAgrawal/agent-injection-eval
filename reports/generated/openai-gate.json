@@ -1,10 +1,22 @@
 {
   "passed": false,
   "checks": {
-    "m1_security_upper_below_zero": false,
-    "m1_clean_lower_above_margin": true,
-    "m2_executed_asr_zero": true,
-    "m2_clean_false_block_at_most_10pct": true
+    "m1_security_upper_below_zero": {
+      "status": "INCONCLUSIVE",
+      "passed": null
+    },
+    "m1_clean_lower_above_margin": {
+      "status": "INCONCLUSIVE",
+      "passed": null
+    },
+    "m2_executed_asr_zero": {
+      "status": "NOT_EXERCISED",
+      "passed": null
+    },
+    "m2_clean_false_block_at_most_10pct": {
+      "status": "PASS",
+      "passed": true
+    }
   },
   "clean_margin": -0.1
 }
