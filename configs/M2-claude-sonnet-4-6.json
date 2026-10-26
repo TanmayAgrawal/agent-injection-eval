@@ -1,7 +1,7 @@
 {
-  "id": "M2-claude-haiku-4-5",
+  "id": "M2-claude-sonnet-4-6",
   "mitigation": "M2",
-  "model": "claude-haiku-4-5-20251001",
+  "model": "claude-sonnet-4-6",
   "temperature": 0.7,
   "max_steps": 3,
   "prompt_file": "configs/prompts/M2.txt",
