@@ -87,4 +87,10 @@ The results will not establish safety, universal prompt-injection resistance, pr
 
 ## Amendments
 
-No amendments at preregistration time.
+### 2026-10-26 — Sonnet 5.5 sampling-control amendment
+
+Before any hosted-model run, the primary model was fixed as `claude-sonnet-5-5` with adaptive thinking and `output_config.effort` set to `high`. Sonnet 5.5 rejects non-default `temperature`, `top_p`, and `top_k` values, so the original plan to run at nonzero temperature cannot be executed on the selected model.
+
+The study will therefore omit sampling parameters and hold effort at `high` across M0, M1, and M2. Effort is a response-depth and tool-behavior control rather than a direct replacement for temperature. The planned 10 repetitions per scenario/configuration remain unchanged and will measure observed outcome nondeterminism under this fixed hosted-model configuration. All primary comparisons, decision rules, scenario counts, outcomes, and limitations remain unchanged.
+
+The committed scripted-fixture traces predate this amendment and remain engineering validation only. No hosted-model evidence was collected before this amendment.

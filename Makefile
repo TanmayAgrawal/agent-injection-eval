@@ -1,7 +1,7 @@
 PYTHON ?= python3
 PYTHONPATH := src
 TRACE := traces/reference-scripted.jsonl
-CLAUDE_TRACE := traces/live/claude-sonnet-4-6.jsonl
+CLAUDE_TRACE := traces/live/claude-sonnet-5-5.jsonl
 
 .PHONY: test validate record-reference record-claude reproduce report report-claude gate gate-claude clean-generated
 
@@ -24,9 +24,9 @@ record-reference:
 record-claude:
 	@test -n "$$ANTHROPIC_API_KEY" || (echo "ANTHROPIC_API_KEY is not set" && exit 1)
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli record-suite \
-		--config configs/M0-claude-sonnet-4-6.json \
-		--config configs/M1-claude-sonnet-4-6.json \
-		--config configs/M2-claude-sonnet-4-6.json \
+		--config configs/M0-claude-sonnet-5-5.json \
+		--config configs/M1-claude-sonnet-5-5.json \
+		--config configs/M2-claude-sonnet-5-5.json \
 		--repetitions 10 \
 		--adapter anthropic \
 		--output $(CLAUDE_TRACE)

@@ -93,7 +93,7 @@ Do not describe scripted-fixture results as model evidence. For hosted runs, ret
 
 ### Anthropic run
 
-The committed Claude configurations use `claude-sonnet-4-6`. Anthropic treats this as a fixed model ID rather than an evergreen alias, and it supports the preregistered nonzero temperature. Claude 4.7 and later models remove that sampling control, so switching to a newer model would require documenting a protocol deviation or amending the preregistration before collecting evidence.
+The committed Claude configurations use the fixed model ID `claude-sonnet-5-5` with adaptive thinking and `high` effort. Sonnet 5.5 rejects non-default temperature values, so the protocol amendment in `PREREG.md` replaces the original temperature plan before any hosted-model run. Repetitions measure observed nondeterminism; effort controls response depth and tool behavior rather than sampling randomness.
 
 Keep the API key outside the repository:
 
@@ -109,7 +109,7 @@ make report-claude
 make gate-claude
 ```
 
-This records 900 live runs in `traces/live/claude-sonnet-4-6.jsonl`. The directory is ignored by Git until the traces have been inspected for secrets and intentionally force-added as an evidence artifact. The API version defaults to `2023-06-01` and can be overridden with `ANTHROPIC_VERSION`; preserve the chosen value alongside the run when reporting results.
+This records 900 live runs in `traces/live/claude-sonnet-5-5.jsonl`. The directory is ignored by Git until the traces have been inspected for secrets and intentionally force-added as an evidence artifact. The API version defaults to `2023-06-01` and can be overridden with `ANTHROPIC_VERSION`; the trace records the selected version and effort level.
 
 ## Replay, compare, and report
 
