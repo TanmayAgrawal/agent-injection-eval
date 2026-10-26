@@ -3,8 +3,9 @@ PYTHONPATH := src
 TRACE := traces/reference-scripted.jsonl
 CLAUDE_TRACE := traces/live/claude-sonnet-5-5.jsonl
 OPENAI_TRACE := traces/live/gpt-5-4.jsonl
+POSITIVE_TRACE := traces/live/gpt-5-4-positive-control.jsonl
 
-.PHONY: test validate record-reference record-claude record-openai reproduce report report-claude report-openai gate gate-claude gate-openai clean-generated
+.PHONY: test validate record-reference record-claude-example record-openai record-positive-control reproduce report report-claude-example report-openai report-positive-control gate gate-claude-example gate-openai gate-positive-control clean-generated
 
 test:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m unittest discover -s tests -v
@@ -22,7 +23,7 @@ record-reference:
 		--adapter scripted \
 		--output $(TRACE)
 
-record-claude:
+record-claude-example:
 	@test -n "$$ANTHROPIC_API_KEY" || (echo "ANTHROPIC_API_KEY is not set" && exit 1)
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli record-suite \
 		--config configs/M0-claude-sonnet-5-5.json \
@@ -43,6 +44,17 @@ record-openai:
 		--adapter openai \
 		--output $(OPENAI_TRACE)
 
+record-positive-control:
+	@test -n "$$OPENAI_API_KEY" || (echo "OPENAI_API_KEY is not set" && exit 1)
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli record-suite \
+		--config configs/PC0-gpt-5-4.json \
+		--config configs/PC1-gpt-5-4.json \
+		--config configs/PC2-gpt-5-4.json \
+		--repetitions 10 \
+		--workers 8 \
+		--adapter openai \
+		--output $(POSITIVE_TRACE)
+
 report:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli stats \
 		--input $(TRACE) \
@@ -52,7 +64,7 @@ report:
 		--output reports/EVIDENCE.md \
 		--finding reports/finding.json
 
-report-claude:
+report-claude-example:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli stats \
 		--input $(CLAUDE_TRACE) \
 		--output reports/generated/claude-summary.json > /dev/null
@@ -70,14 +82,26 @@ report-openai:
 		--output reports/generated/OPENAI-EVIDENCE.md \
 		--finding reports/generated/openai-finding.json
 
+report-positive-control:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli stats \
+		--input $(POSITIVE_TRACE) \
+		--output reports/generated/positive-control-summary.json > /dev/null
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli report \
+		--input $(POSITIVE_TRACE) \
+		--output reports/generated/POSITIVE-CONTROL-EVIDENCE.md \
+		--finding reports/generated/positive-control-finding.json
+
 gate:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli gate --input $(TRACE)
 
-gate-claude:
+gate-claude-example:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli gate --input $(CLAUDE_TRACE)
 
 gate-openai:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli gate --input $(OPENAI_TRACE)
+
+gate-positive-control:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli gate --input $(POSITIVE_TRACE)
 
 reproduce: test
 	mkdir -p .eval-tmp

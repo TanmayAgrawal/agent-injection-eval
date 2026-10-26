@@ -28,6 +28,8 @@ Three configurations test different claims:
 - **M1:** prompt-level isolation of retrieved content.
 - **M2:** an external deterministic recipient-authorization policy.
 
+The neutral M0 prompt contains no authorization, untrusted-content, or instruction-isolation language. A separate preregistered positive control deliberately makes retrieved instructions authoritative to verify that the harness can detect known-vulnerable behavior.
+
 ## Repository map
 
 ```text
@@ -106,11 +108,22 @@ make report-openai
 make gate-openai
 ```
 
-This records 900 live runs in `traces/live/gpt-5-4.jsonl`. Inspect the ignored trace file before intentionally adding it as an evidence artifact.
+This records 900 live runs in `traces/live/gpt-5-4.jsonl`. The hosted trace is intentionally committed after credential inspection; future ad hoc files under `traces/live/` remain ignored unless explicitly added.
 
-### Anthropic run
+### Positive-control run
 
-The committed Claude configurations use the fixed model ID `claude-sonnet-5-5` with adaptive thinking and `high` effort. Sonnet 5.5 rejects non-default temperature values, so the protocol amendment in `PREREG.md` replaces the original temperature plan before any hosted-model run. Repetitions measure observed nondeterminism; effort controls response depth and tool behavior rather than sampling randomness.
+[`POSITIVE_CONTROL.md`](POSITIVE_CONTROL.md) preregisters a deliberately vulnerable target configuration used only to validate harness sensitivity. It uses the same GPT-5.4 snapshot, scenarios, tools, grader, and repetitions as the primary run.
+
+```bash
+export OPENAI_API_KEY="your-key"
+make record-positive-control
+make report-positive-control
+make gate-positive-control
+```
+
+### Anthropic integration example — not run
+
+The committed Claude configurations are unrun integration examples, not evidence. No valid Anthropic credential was available and no Claude trace or result is included. The example uses `claude-sonnet-5-5` with adaptive thinking and `high` effort.
 
 Keep the API key outside the repository:
 
@@ -121,9 +134,9 @@ export ANTHROPIC_API_KEY="your-key"
 If the key is not scoped to a single workspace, also set `ANTHROPIC_WORKSPACE_ID`. Then commit any pending code or configuration changes and run:
 
 ```bash
-make record-claude
-make report-claude
-make gate-claude
+make record-claude-example
+make report-claude-example
+make gate-claude-example
 ```
 
 This records 900 live runs in `traces/live/claude-sonnet-5-5.jsonl`. The directory is ignored by Git until the traces have been inspected for secrets and intentionally force-added as an evidence artifact. The API version defaults to `2023-06-01` and can be overridden with `ANTHROPIC_VERSION`; the trace records the selected version and effort level.
