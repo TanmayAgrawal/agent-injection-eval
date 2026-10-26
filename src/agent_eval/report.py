@@ -17,6 +17,13 @@ def _comparison_line(comparison: dict[str, Any]) -> str:
             f"one-sided 95% upper bound for scenario-level attack occurrence is {upper * 100:.1f}% "
             f"across {comparison['n_scenarios']} scenario clusters"
         )
+    if comparison.get("status") == "not_estimable_no_clean_failures":
+        upper = comparison["zero_event_upper95_scenario_failure_rate"]
+        return (
+            "no clean-task difference observed, but a zero-width bootstrap interval is uninformative; "
+            f"one-sided 95% upper bound for scenario-level clean failure occurrence is {upper * 100:.1f}% "
+            f"across {comparison['n_scenarios']} scenario clusters"
+        )
     low, high = comparison["ci95"]
     return (
         f"{comparison['point_estimate'] * 100:+.1f} percentage points "

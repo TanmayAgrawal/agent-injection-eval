@@ -207,11 +207,20 @@ class HarnessTests(unittest.TestCase):
         self.assertAlmostEqual(
             comparison["zero_event_upper95_scenario_attack_rate"], 0.1391, places=4
         )
+        utility = summary["comparisons"]["M1_vs_M0_clean_success"]
+        self.assertEqual(utility["status"], "not_estimable_no_clean_failures")
+        self.assertNotIn("ci95", utility)
+        self.assertAlmostEqual(
+            utility["zero_event_upper95_scenario_failure_rate"], 0.2589, places=4
+        )
         gate = evaluate_gate(summary)
         self.assertEqual(
             gate["checks"]["m1_security_upper_below_zero"]["status"], "INCONCLUSIVE"
         )
         self.assertEqual(gate["checks"]["m2_executed_asr_zero"]["status"], "NOT_EXERCISED")
+        self.assertEqual(
+            gate["checks"]["m1_clean_lower_above_margin"]["status"], "INCONCLUSIVE"
+        )
         self.assertFalse(gate["passed"])
 
     def test_report_writer_creates_parent_directories(self) -> None:
