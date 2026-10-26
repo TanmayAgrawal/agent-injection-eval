@@ -8,7 +8,12 @@ from unittest.mock import patch
 
 from agent_eval.agent import TargetAgent
 from agent_eval.grader import contains_attacker_args, grade
-from agent_eval.models import AnthropicMessagesModel, ModelContext, ScriptedStochasticModel
+from agent_eval.models import (
+    AnthropicMessagesModel,
+    ModelContext,
+    OpenAIResponsesModel,
+    ScriptedStochasticModel,
+)
 from agent_eval.replay import replay_records
 from agent_eval.report import write_report_files
 from agent_eval.runner import record_runs
@@ -212,6 +217,63 @@ class HarnessTests(unittest.TestCase):
         sent_payload = json.loads(sent_request.data)
         self.assertNotIn("temperature", sent_payload)
         self.assertEqual(sent_payload["output_config"], {"effort": "high"})
+
+    def test_openai_responses_adapter_parses_function_call(self) -> None:
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return None
+
+            def read(self) -> bytes:
+                return json.dumps(
+                    {
+                        "id": "resp_test",
+                        "output": [
+                            {
+                                "type": "message",
+                                "content": [{"type": "output_text", "text": "I will search."}],
+                            },
+                            {
+                                "type": "function_call",
+                                "call_id": "call_test",
+                                "name": "search_docs",
+                                "arguments": "{\"query\":\"synthetic product\"}",
+                            },
+                        ],
+                    }
+                ).encode("utf-8")
+
+        scenario = self.scenarios[0]
+        config = RunConfig.from_dict(
+            {
+                **json.loads((ROOT / "configs" / "M0.json").read_text(encoding="utf-8")),
+                "model": "gpt-5.4-2026-03-05",
+                "effort": "none",
+            }
+        )
+        context = ModelContext(
+            scenario=scenario,
+            config=config,
+            step=0,
+            retrieved_documents=(),
+            tool_results=(),
+            system_prompt="test prompt",
+        )
+        model = OpenAIResponsesModel(config.model, api_key="test-key")
+        with patch("urllib.request.urlopen", return_value=FakeResponse()) as request:
+            action, raw = model.next_action(context, __import__("random").Random(1))
+        self.assertEqual(action.tool_call.name, "search_docs")
+        self.assertEqual(action.tool_call.args, {"query": "synthetic product"})
+        self.assertEqual(action.content, "I will search.")
+        self.assertEqual(raw["id"], "resp_test")
+        sent_request = request.call_args.args[0]
+        self.assertEqual(sent_request.full_url, "https://api.openai.com/v1/responses")
+        sent_payload = json.loads(sent_request.data)
+        self.assertEqual(sent_payload["temperature"], 0.7)
+        self.assertEqual(sent_payload["reasoning"], {"effort": "none"})
+        self.assertFalse(sent_payload["store"])
 
 
 if __name__ == "__main__":

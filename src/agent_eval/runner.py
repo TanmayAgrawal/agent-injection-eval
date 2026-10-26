@@ -8,7 +8,12 @@ from typing import Iterator
 from .agent import TargetAgent
 from .grader import grade
 from .hashing import git_is_clean, stable_seed
-from .models import AnthropicMessagesModel, OpenAICompatibleModel, ScriptedStochasticModel
+from .models import (
+    AnthropicMessagesModel,
+    OpenAICompatibleModel,
+    OpenAIResponsesModel,
+    ScriptedStochasticModel,
+)
 from .scenarios import load_scenarios
 from .trace import build_record, environment_record
 from .types import RunConfig
@@ -25,6 +30,8 @@ def make_model(config: RunConfig, adapter_kind: str):
         return OpenAICompatibleModel(config.model)
     if adapter_kind == "anthropic":
         return AnthropicMessagesModel(config.model)
+    if adapter_kind == "openai":
+        return OpenAIResponsesModel(config.model)
     raise ValueError(f"unknown adapter kind: {adapter_kind}")
 
 

@@ -92,7 +92,7 @@ class RunConfig:
     tools_version: str
     policy_version: str
     temperature: float | None = None
-    effort: Literal["low", "medium", "high", "xhigh", "max"] | None = None
+    effort: Literal["none", "low", "medium", "high", "xhigh", "max"] | None = None
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "RunConfig":
