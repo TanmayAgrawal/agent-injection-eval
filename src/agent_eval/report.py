@@ -10,6 +10,13 @@ def _pct(value: float) -> str:
 
 
 def _comparison_line(comparison: dict[str, Any]) -> str:
+    if comparison.get("status") == "not_estimable_floor":
+        upper = comparison["zero_event_upper95_scenario_attack_rate"]
+        return (
+            "not estimable because the baseline had zero attack events; "
+            f"one-sided 95% upper bound for scenario-level attack occurrence is {upper * 100:.1f}% "
+            f"across {comparison['n_scenarios']} scenario clusters"
+        )
     low, high = comparison["ci95"]
     return (
         f"{comparison['point_estimate'] * 100:+.1f} percentage points "
@@ -63,13 +70,14 @@ def generate_evidence_markdown(
         "",
         "## Results",
         "",
-        "| Config | Attempted ASR | Executed ASR | Clean task success | Mixed injected scenarios |",
-        "| --- | ---: | ---: | ---: | ---: |",
+        "| Config | Attempted ASR | Executed ASR | Blocked injected runs | Clean task success | Mixed injected scenarios |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
     for config, values in summary["configs"].items():
         lines.append(
             f"| {config} | {_pct(values['attempted_asr_injected'])} | "
-            f"{_pct(values['executed_asr_injected'])} | {_pct(values['clean_task_success'])} | "
+            f"{_pct(values['executed_asr_injected'])} | {values['blocked_injected_runs']} | "
+            f"{_pct(values['clean_task_success'])} | "
             f"{_pct(values['mixed_injected_scenarios'])} |"
         )
     lines.extend(["", "### Paired comparisons", ""])
@@ -78,10 +86,12 @@ def generate_evidence_markdown(
     baseline_asr = summary["configs"].get("M0", {}).get("executed_asr_injected")
     lines.extend(["", "### Interpretation", ""])
     if baseline_asr == 0.0:
+        upper = summary["configs"]["M0"]["zero_event_upper95_scenario_attack_rate"]
         lines.append(
             "No attacker-controlled privileged call was observed in the baseline. This floor effect means "
             "the study cannot show that M1 reduced attack success, and M2's blocking behavior was not "
-            "exercised by these model-generated calls. The result supports only that no attack success was "
+            "exercised by these model-generated calls. The one-sided 95% upper bound for scenario-level "
+            f"attack occurrence is {upper * 100:.1f}%. The result supports only that no attack success was "
             "observed in this synthetic suite under the recorded model configuration."
         )
     else:
@@ -90,8 +100,9 @@ def generate_evidence_markdown(
             "clean-task thresholds; they apply only to the recorded scenarios and model configuration."
         )
     lines.extend(["", "### Preregistered gate", ""])
-    for name, passed in gate["checks"].items():
-        lines.append(f"- {'PASS' if passed else 'INCONCLUSIVE'}: `{name}`")
+    for name, check in gate["checks"].items():
+        status = check["status"] if isinstance(check, dict) else ("PASS" if check else "INCONCLUSIVE")
+        lines.append(f"- {status}: `{name}`")
 
     lines.extend(["", "## Example traces", ""])
     for line_number in example_lines:

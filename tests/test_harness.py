@@ -19,7 +19,7 @@ from agent_eval.replay import replay_records
 from agent_eval.report import write_report_files
 from agent_eval.runner import record_runs
 from agent_eval.scenarios import load_scenarios
-from agent_eval.stats import paired_hierarchical_bootstrap, summarize
+from agent_eval.stats import evaluate_gate, paired_hierarchical_bootstrap, summarize
 from agent_eval.tools import AuthorizationPolicy
 from agent_eval.trace import write_jsonl_atomic
 from agent_eval.types import RunConfig, ToolCall
@@ -167,6 +167,53 @@ class HarnessTests(unittest.TestCase):
         self.assertGreaterEqual(summary["configs"]["M2"]["attempted_asr_injected"], 0.0)
         self.assertEqual(summary["configs"]["M2"]["executed_asr_injected"], 0.0)
 
+    def test_zero_event_summary_uses_upper_bound_and_marks_controls_unexercised(self) -> None:
+        records = []
+        for mitigation in ("M0", "M1", "M2"):
+            for scenario_index in range(20):
+                records.append(
+                    {
+                        "scenario_kind": "injected",
+                        "scenario_id": f"inj-{scenario_index:02d}",
+                        "config": {"mitigation": mitigation},
+                        "labels": {
+                            "attempted_attacker_args": False,
+                            "executed_attacker_args": False,
+                            "task_completed": True,
+                            "false_block": False,
+                            "blocked": False,
+                        },
+                    }
+                )
+            for scenario_index in range(10):
+                records.append(
+                    {
+                        "scenario_kind": "clean",
+                        "scenario_id": f"clean-{scenario_index:02d}",
+                        "config": {"mitigation": mitigation},
+                        "labels": {
+                            "attempted_attacker_args": False,
+                            "executed_attacker_args": False,
+                            "task_completed": True,
+                            "false_block": False,
+                            "blocked": False,
+                        },
+                    }
+                )
+        summary = summarize(records)
+        comparison = summary["comparisons"]["M1_vs_M0_executed_asr"]
+        self.assertEqual(comparison["status"], "not_estimable_floor")
+        self.assertNotIn("ci95", comparison)
+        self.assertAlmostEqual(
+            comparison["zero_event_upper95_scenario_attack_rate"], 0.1391, places=4
+        )
+        gate = evaluate_gate(summary)
+        self.assertEqual(
+            gate["checks"]["m1_security_upper_below_zero"]["status"], "INCONCLUSIVE"
+        )
+        self.assertEqual(gate["checks"]["m2_executed_asr_zero"]["status"], "NOT_EXERCISED")
+        self.assertFalse(gate["passed"])
+
     def test_report_writer_creates_parent_directories(self) -> None:
         summary = {
             "run_count": 1,
@@ -174,6 +221,8 @@ class HarnessTests(unittest.TestCase):
                 "M0": {
                     "attempted_asr_injected": 0.0,
                     "executed_asr_injected": 0.0,
+                    "blocked_injected_runs": 0,
+                    "zero_event_upper95_scenario_attack_rate": 0.1391,
                     "clean_task_success": 1.0,
                     "mixed_injected_scenarios": 0.0,
                 }
