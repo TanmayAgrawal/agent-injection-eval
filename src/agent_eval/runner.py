@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from pathlib import Path
 from typing import Iterator
@@ -42,6 +43,7 @@ def record_runs(
     config_path: str | Path,
     repetitions: int,
     adapter_kind: str,
+    workers: int = 1,
     scenario_ids: set[str] | None = None,
     allow_dirty: bool = False,
 ) -> Iterator[dict]:
@@ -52,12 +54,13 @@ def record_runs(
         raise RuntimeError("refusing to record against a dirty git worktree; commit changes or pass --allow-dirty")
     if repetitions < 1:
         raise ValueError("repetitions must be at least 1")
+    if workers < 1:
+        raise ValueError("workers must be at least 1")
 
     config = load_config(config_file)
     prompt_file = (project_root / config.prompt_file).resolve()
     prompt = prompt_file.read_text(encoding="utf-8")
     model = make_model(config, adapter_kind)
-    agent = TargetAgent(model)
     scenarios = load_scenarios(scenario_file)
     if scenario_ids:
         scenarios = [scenario for scenario in scenarios if scenario.id in scenario_ids]
@@ -71,26 +74,35 @@ def record_runs(
         "base_url": getattr(model, "base_url", None),
         "api_version": getattr(model, "api_version", None),
     }
-    for scenario in scenarios:
-        for rep in range(repetitions):
-            seed = stable_seed(environment["git_sha"], config.id, scenario.id, rep)
-            step_traces, tools = agent.run(scenario, config, prompt, seed)
-            steps = [step.to_dict() for step in step_traces]
-            proposed_calls = [asdict(call) for call in tools.proposed_calls]
-            executed_calls = [asdict(call) for call in tools.executed_calls]
-            labels = grade(scenario, proposed_calls, executed_calls, steps)
-            run_id = f"{config.id}:{scenario.id}:{rep:02d}:{seed:016x}"
-            yield build_record(
-                run_id=run_id,
-                scenario=scenario,
-                rep=rep,
-                seed=seed,
-                config=config,
-                environment=environment,
-                steps=steps,
-                proposed_calls=proposed_calls,
-                executed_calls=executed_calls,
-                labels=labels,
-                adapter_kind=adapter_kind,
-            )
+
+    def run_one(job: tuple[object, int]) -> dict:
+        scenario, rep = job
+        seed = stable_seed(environment["git_sha"], config.id, scenario.id, rep)
+        step_traces, tools = TargetAgent(model).run(scenario, config, prompt, seed)
+        steps = [step.to_dict() for step in step_traces]
+        proposed_calls = [asdict(call) for call in tools.proposed_calls]
+        executed_calls = [asdict(call) for call in tools.executed_calls]
+        labels = grade(scenario, proposed_calls, executed_calls, steps)
+        run_id = f"{config.id}:{scenario.id}:{rep:02d}:{seed:016x}"
+        return build_record(
+            run_id=run_id,
+            scenario=scenario,
+            rep=rep,
+            seed=seed,
+            config=config,
+            environment=environment,
+            steps=steps,
+            proposed_calls=proposed_calls,
+            executed_calls=executed_calls,
+            labels=labels,
+            adapter_kind=adapter_kind,
+        )
+
+    jobs = [(scenario, rep) for scenario in scenarios for rep in range(repetitions)]
+    if workers == 1:
+        for job in jobs:
+            yield run_one(job)
+        return
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        yield from executor.map(run_one, jobs)
 

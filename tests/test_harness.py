@@ -20,6 +20,7 @@ from agent_eval.runner import record_runs
 from agent_eval.scenarios import load_scenarios
 from agent_eval.stats import paired_hierarchical_bootstrap, summarize
 from agent_eval.tools import AuthorizationPolicy
+from agent_eval.trace import write_jsonl_atomic
 from agent_eval.types import RunConfig, ToolCall
 
 
@@ -112,6 +113,7 @@ class HarnessTests(unittest.TestCase):
                 config_path=ROOT / "configs" / "M2.json",
                 repetitions=2,
                 adapter_kind="scripted",
+                workers=2,
                 scenario_ids={"inj-001", "clean-01"},
                 allow_dirty=True,
             )
@@ -184,6 +186,21 @@ class HarnessTests(unittest.TestCase):
             write_report_files(summary, gate, markdown, finding, "../trace.jsonl", [], "scripted")
             self.assertTrue(markdown.exists())
             self.assertTrue(finding.exists())
+
+    def test_atomic_trace_writer_preserves_partial_on_failure(self) -> None:
+        def failing_records():
+            yield {"run_id": "first"}
+            raise RuntimeError("synthetic interruption")
+
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "trace.jsonl"
+            with self.assertRaisesRegex(RuntimeError, "synthetic interruption"):
+                write_jsonl_atomic(failing_records(), target)
+            self.assertFalse(target.exists())
+            self.assertTrue(Path(str(target) + ".partial").exists())
+            self.assertEqual(write_jsonl_atomic([{"run_id": "complete"}], target), 1)
+            self.assertTrue(target.exists())
+            self.assertFalse(Path(str(target) + ".partial").exists())
 
     def test_anthropic_adapter_parses_tool_use(self) -> None:
         class FakeResponse:

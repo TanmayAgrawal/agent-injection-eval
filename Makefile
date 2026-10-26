@@ -39,6 +39,7 @@ record-openai:
 		--config configs/M1-gpt-5-4.json \
 		--config configs/M2-gpt-5-4.json \
 		--repetitions 10 \
+		--workers 8 \
 		--adapter openai \
 		--output $(OPENAI_TRACE)
 

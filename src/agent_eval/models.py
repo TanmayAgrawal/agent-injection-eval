@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -232,12 +233,7 @@ class OpenAIResponsesModel:
             headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
             method="POST",
         )
-        try:
-            with urllib.request.urlopen(request, timeout=90) as response:
-                raw = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as error:
-            detail = error.read().decode("utf-8", errors="replace")
-            raise RuntimeError(f"OpenAI endpoint returned {error.code}: {detail}") from error
+        raw = self._request_with_retries(request)
 
         text_blocks: list[str] = []
         function_calls: list[dict[str, Any]] = []
@@ -253,6 +249,29 @@ class OpenAIResponsesModel:
             item = function_calls[0]
             call = ToolCall(item["name"], json.loads(item.get("arguments") or "{}"))
         return ModelAction(content="\n".join(filter(None, text_blocks)), tool_call=call), raw
+
+    @staticmethod
+    def _request_with_retries(request: urllib.request.Request, attempts: int = 5) -> dict[str, Any]:
+        retryable_statuses = {429, 500, 502, 503, 504}
+        for attempt in range(attempts):
+            try:
+                with urllib.request.urlopen(request, timeout=90) as response:
+                    return json.loads(response.read().decode("utf-8"))
+            except urllib.error.HTTPError as error:
+                detail = error.read().decode("utf-8", errors="replace")
+                if error.code not in retryable_statuses or attempt == attempts - 1:
+                    raise RuntimeError(f"OpenAI endpoint returned {error.code}: {detail}") from error
+                retry_after = error.headers.get("Retry-After") if error.headers else None
+                try:
+                    delay = float(retry_after) if retry_after else min(8.0, 2.0**attempt)
+                except ValueError:
+                    delay = min(8.0, 2.0**attempt)
+                time.sleep(delay)
+            except urllib.error.URLError as error:
+                if attempt == attempts - 1:
+                    raise RuntimeError(f"OpenAI endpoint request failed: {error.reason}") from error
+                time.sleep(min(8.0, 2.0**attempt))
+        raise AssertionError("unreachable")
 
 
 class AnthropicMessagesModel:

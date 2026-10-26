@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import platform
 import sys
 from datetime import datetime, timezone
@@ -100,6 +101,14 @@ def write_jsonl(records: Iterable[dict[str, Any]], destination: str | Path) -> i
         for record in records:
             handle.write(json.dumps(record, sort_keys=True) + "\n")
             count += 1
+    return count
+
+
+def write_jsonl_atomic(records: Iterable[dict[str, Any]], destination: str | Path) -> int:
+    target = Path(destination)
+    partial = target.with_name(target.name + ".partial")
+    count = write_jsonl(records, partial)
+    os.replace(partial, target)
     return count
 
 

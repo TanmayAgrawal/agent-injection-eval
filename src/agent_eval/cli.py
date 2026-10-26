@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import os
 from pathlib import Path
@@ -9,7 +10,7 @@ from .replay import replay_records
 from .report import write_report_files
 from .runner import record_runs
 from .stats import evaluate_gate, summarize
-from .trace import read_jsonl, write_jsonl
+from .trace import read_jsonl, write_jsonl, write_jsonl_atomic
 
 
 def project_root() -> Path:
@@ -18,38 +19,37 @@ def project_root() -> Path:
 
 def command_record(args: argparse.Namespace) -> int:
     root = project_root()
-    records = list(
-        record_runs(
-            root=root,
-            scenario_path=root / args.scenarios,
-            config_path=root / args.config,
-            repetitions=args.repetitions,
-            adapter_kind=args.adapter,
-            scenario_ids=set(args.scenario) if args.scenario else None,
-            allow_dirty=args.allow_dirty,
-        )
+    records = record_runs(
+        root=root,
+        scenario_path=root / args.scenarios,
+        config_path=root / args.config,
+        repetitions=args.repetitions,
+        adapter_kind=args.adapter,
+        workers=args.workers,
+        scenario_ids=set(args.scenario) if args.scenario else None,
+        allow_dirty=args.allow_dirty,
     )
-    count = write_jsonl(records, root / args.output)
+    count = write_jsonl_atomic(records, root / args.output)
     print(json.dumps({"command": "record", "records": count, "output": args.output}))
     return 0
 
 
 def command_record_suite(args: argparse.Namespace) -> int:
     root = project_root()
-    records = []
-    for config in args.config:
-        records.extend(
-            record_runs(
-                root=root,
-                scenario_path=root / args.scenarios,
-                config_path=root / config,
-                repetitions=args.repetitions,
-                adapter_kind=args.adapter,
-                scenario_ids=set(args.scenario) if args.scenario else None,
-                allow_dirty=args.allow_dirty,
-            )
+    records = itertools.chain.from_iterable(
+        record_runs(
+            root=root,
+            scenario_path=root / args.scenarios,
+            config_path=root / config,
+            repetitions=args.repetitions,
+            adapter_kind=args.adapter,
+            workers=args.workers,
+            scenario_ids=set(args.scenario) if args.scenario else None,
+            allow_dirty=args.allow_dirty,
         )
-    count = write_jsonl(records, root / args.output)
+        for config in args.config
+    )
+    count = write_jsonl_atomic(records, root / args.output)
     print(
         json.dumps(
             {"command": "record-suite", "configs": args.config, "records": count, "output": args.output}
@@ -102,11 +102,12 @@ def command_rerun(args: argparse.Namespace) -> int:
             config_path=root / args.config,
             repetitions=args.repetitions,
             adapter_kind=args.adapter,
+            workers=args.workers,
             scenario_ids=set(args.scenario) if args.scenario else None,
             allow_dirty=args.allow_dirty,
         )
     )
-    write_jsonl(new_records, root / args.output)
+    write_jsonl_atomic(new_records, root / args.output)
     baseline = read_jsonl(root / args.baseline)
     combined = baseline + new_records
     summary = summarize(combined)
@@ -160,6 +161,7 @@ def build_parser() -> argparse.ArgumentParser:
     record.add_argument("--scenarios", default="scenarios/scenarios.json")
     record.add_argument("--output", required=True)
     record.add_argument("--repetitions", type=int, default=10)
+    record.add_argument("--workers", type=int, default=1)
     record.add_argument("--adapter", choices=["scripted", "hosted", "anthropic", "openai"], default="scripted")
     record.add_argument("--scenario", action="append")
     record.add_argument("--allow-dirty", action="store_true")
@@ -170,6 +172,7 @@ def build_parser() -> argparse.ArgumentParser:
     suite.add_argument("--scenarios", default="scenarios/scenarios.json")
     suite.add_argument("--output", required=True)
     suite.add_argument("--repetitions", type=int, default=10)
+    suite.add_argument("--workers", type=int, default=1)
     suite.add_argument("--adapter", choices=["scripted", "hosted", "anthropic", "openai"], default="scripted")
     suite.add_argument("--scenario", action="append")
     suite.add_argument("--allow-dirty", action="store_true")
@@ -197,6 +200,7 @@ def build_parser() -> argparse.ArgumentParser:
     rerun.add_argument("--scenarios", default="scenarios/scenarios.json")
     rerun.add_argument("--output", required=True)
     rerun.add_argument("--repetitions", type=int, default=10)
+    rerun.add_argument("--workers", type=int, default=1)
     rerun.add_argument("--adapter", choices=["scripted", "hosted", "anthropic", "openai"], default="scripted")
     rerun.add_argument("--scenario", action="append")
     rerun.add_argument("--allow-dirty", action="store_true")
