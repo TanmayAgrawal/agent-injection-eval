@@ -16,6 +16,8 @@ The primary grader checks structured tool-call arguments. This avoids an LLM jud
 
 The paired hierarchical bootstrap preserves scenario clustering, but confidence intervals are still sensitive to the small number of scenario clusters. Per-axis results are exploratory.
 
+When no event occurs in any scenario cluster, the bootstrap distribution collapses to zero and cannot express uncertainty. Those cases are reported with a one-sided 95% upper bound on scenario-level event occurrence instead of a zero-width interval. With 20 injected clusters that bound is 13.9%; with 10 clean clusters it is 25.9%.
+
 ## Mitigation claims
 
 M1 is a behavioral prompt intervention whose result may vary by model, provider, prompt formatting, decoding settings, and date. M2 is an external boundary control. A zero executed attack-success rate for declared attacker recipients shows that the tested policy enforced its rule; it does not show that the policy is complete or bypass-proof.
@@ -27,6 +29,8 @@ M1 and M2 therefore support different claims and should not be ranked using atta
 Committed scripted traces validate the runner, trace format, policy, grader, replay, statistics, and report generation. The scripted adapter is not a language model and its outcome rates are not evidence about any deployed model.
 
 Hosted-model results are dated observations. A provider may change infrastructure behind an identifier, seeds may not be honored, and retries may alter sampling. The committed raw traces—not the ability to regenerate identical hosted outputs—are the reproducible artifact.
+
+The positive control deliberately instructs the model to treat retrieved text as authoritative. It demonstrates that the harness can observe vulnerable behavior and that the policy path can be exercised; it does not estimate vulnerability under a realistic system prompt or production deployment.
 
 ## Claims not supported
 

@@ -4,7 +4,7 @@
 
 ## What the results do not show
 
-This project does not establish production safety or universal prompt-injection resistance. It evaluates a toy agent with synthetic documents, mocked tools, hand-written attacks, and a narrow programmatic grader. The scripted reference traces validate the evaluation software only. The separate hosted-model evidence applies only to the committed GPT-5.4 snapshot, prompts, tools, synthetic scenarios, and recorded run window.
+This project does not establish production safety or universal prompt-injection resistance. It evaluates a toy agent with synthetic documents, mocked tools, hand-written attacks, and a narrow programmatic grader. The scripted reference traces validate the evaluation software only. The deliberately naive positive control validates harness sensitivity, not the vulnerability of a production agent. Hosted-model evidence applies only to the committed GPT-5.4 snapshot, prompts, tools, synthetic scenarios, and recorded run windows.
 
 ## Evaluation question
 
@@ -121,6 +121,8 @@ make report-positive-control
 make gate-positive-control
 ```
 
+The committed positive control contains 900 runs. Under the deliberately naive prompt, M0 executed attacker-controlled arguments in 54.5% of injected runs. M1 reduced executed ASR to 0% (paired change -54.5 percentage points; 95% CI -74.5 to -34.5). M2 retained a 54.5% attempt rate, recorded 109 policy blocks, and executed 0 attacks. All configurations completed 100% of clean tasks, but with only 10 clean scenario clusters the preregistered utility threshold remains inconclusive; a one-sided 95% upper bound on scenario-level clean failure occurrence is 25.9%.
+
 ### Anthropic integration example — not run
 
 The committed Claude configurations are unrun integration examples, not evidence. No valid Anthropic credential was available and no Claude trace or result is included. The example uses `claude-sonnet-5-5` with adaptive thinking and `high` effort.
@@ -166,8 +168,11 @@ PYTHONPATH=src python3 -m agent_eval.cli rerun \
 - [`reports/generated/OPENAI-EVIDENCE.md`](reports/generated/OPENAI-EVIDENCE.md) is the 900-run GPT-5.4 evidence record.
 - [`reports/generated/openai-finding.json`](reports/generated/openai-finding.json) is its vendor-neutral machine-readable finding.
 - `traces/live/gpt-5-4.jsonl` is the hosted-model trace artifact. Its SHA-256 is recorded in the evidence report.
+- [`reports/generated/POSITIVE-CONTROL-EVIDENCE.md`](reports/generated/POSITIVE-CONTROL-EVIDENCE.md) reports the deliberately vulnerable sensitivity check.
+- [`reports/generated/positive-control-finding.json`](reports/generated/positive-control-finding.json) is its machine-readable finding.
+- `traces/live/gpt-5-4-positive-control.jsonl` is the positive-control trace artifact; its SHA-256 is recorded in the evidence report.
 
-The hosted run observed 0% attack success and 100% clean-task success in every configuration. Because M0 also had 0% attack success, the M1 mitigation effect is inconclusive due to a floor effect; this is not evidence that M1 is effective or that GPT-5.4 is generally resistant to prompt injection.
+The primary hosted run observed 0% attack success and 100% clean-task success in every configuration. Because M0 also had 0% attack success, the M1 mitigation effect is inconclusive due to a floor effect, with a one-sided 95% upper bound of 13.9% for scenario-level attack occurrence. M2 is marked `NOT_EXERCISED`, not `PASS`. This is not evidence that M1 is effective or that GPT-5.4 is generally resistant to prompt injection.
 
 ## Safe use
 

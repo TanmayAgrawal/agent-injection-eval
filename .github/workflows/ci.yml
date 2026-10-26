@@ -42,8 +42,17 @@ jobs:
           --input traces/live/gpt-5-4.jsonl
           --output /tmp/gpt-5-4-replayed.jsonl
 
+      - name: Replay positive-control trace
+        run: >-
+          PYTHONPATH=src python -m agent_eval.cli replay
+          --input traces/live/gpt-5-4-positive-control.jsonl
+          --output /tmp/gpt-5-4-positive-control-replayed.jsonl
+
       - name: Regenerate hosted evidence
         run: make report-openai
+
+      - name: Regenerate positive-control evidence
+        run: make report-positive-control
 
       - name: Verify expected hosted gate result
         shell: bash
@@ -55,6 +64,17 @@ jobs:
           set -e
           test "$gate_status" -eq 1
           cmp /tmp/openai-gate.json reports/generated/openai-gate.json
+
+      - name: Verify expected positive-control gate result
+        shell: bash
+        run: |
+          set +e
+          PYTHONPATH=src python -m agent_eval.cli gate \
+            --input traces/live/gpt-5-4-positive-control.jsonl > /tmp/positive-control-gate.json
+          gate_status=$?
+          set -e
+          test "$gate_status" -eq 1
+          cmp /tmp/positive-control-gate.json reports/generated/positive-control-gate.json
 
       - name: Verify generated artifacts are current
         run: git diff --exit-code
