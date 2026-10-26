@@ -6,6 +6,7 @@ __pycache__/
 .eval-tmp/
 dist/
 build/
+*.egg-info/
 traces/live/
 reports/generated/
 
