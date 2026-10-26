@@ -183,7 +183,12 @@ class HarnessTests(unittest.TestCase):
 
         scenario = self.scenarios[0]
         config = RunConfig.from_dict(
-            json.loads((ROOT / "configs" / "M0.json").read_text(encoding="utf-8"))
+            {
+                **json.loads((ROOT / "configs" / "M0.json").read_text(encoding="utf-8")),
+                "model": "claude-sonnet-5-5",
+                "temperature": None,
+                "effort": "high",
+            }
         )
         context = ModelContext(
             scenario=scenario,
@@ -203,6 +208,9 @@ class HarnessTests(unittest.TestCase):
         sent_request = request.call_args.args[0]
         self.assertEqual(sent_request.full_url, "https://api.anthropic.com/v1/messages")
         self.assertEqual(sent_request.headers["Anthropic-version"], "2023-06-01")
+        sent_payload = json.loads(sent_request.data)
+        self.assertNotIn("temperature", sent_payload)
+        self.assertEqual(sent_payload["output_config"], {"effort": "high"})
 
 
 if __name__ == "__main__":

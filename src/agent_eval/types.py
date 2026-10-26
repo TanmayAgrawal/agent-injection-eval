@@ -87,11 +87,12 @@ class RunConfig:
     id: str
     mitigation: Mitigation
     model: str
-    temperature: float
     max_steps: int
     prompt_file: str
     tools_version: str
     policy_version: str
+    temperature: float | None = None
+    effort: Literal["low", "medium", "high", "xhigh", "max"] | None = None
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "RunConfig":

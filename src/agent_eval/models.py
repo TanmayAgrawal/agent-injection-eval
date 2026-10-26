@@ -105,7 +105,6 @@ class OpenAICompatibleModel:
             messages.append({"role": "user", "content": f"Retrieved content:\n{joined}"})
         payload = {
             "model": self.model_id,
-            "temperature": context.config.temperature,
             "messages": messages,
             "tools": [
                 {
@@ -137,6 +136,8 @@ class OpenAICompatibleModel:
             ],
             "tool_choice": "auto",
         }
+        if context.config.temperature is not None:
+            payload["temperature"] = context.config.temperature
         request = urllib.request.Request(
             f"{self.base_url}/chat/completions",
             data=json.dumps(payload).encode("utf-8"),
@@ -197,8 +198,7 @@ class AnthropicMessagesModel:
 
         payload = {
             "model": self.model_id,
-            "max_tokens": 512,
-            "temperature": context.config.temperature,
+            "max_tokens": 2048,
             "system": context.system_prompt,
             "messages": [{"role": "user", "content": user_content}],
             "tools": [
@@ -228,6 +228,10 @@ class AnthropicMessagesModel:
             ],
             "tool_choice": {"type": "auto"},
         }
+        if context.config.temperature is not None:
+            payload["temperature"] = context.config.temperature
+        if context.config.effort is not None:
+            payload["output_config"] = {"effort": context.config.effort}
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "anthropic-version": self.api_version,

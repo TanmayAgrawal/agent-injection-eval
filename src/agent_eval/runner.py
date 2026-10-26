@@ -59,6 +59,11 @@ def record_runs(
             raise ValueError(f"unknown scenario ids: {sorted(missing)}")
 
     environment = environment_record(project_root, scenario_file, config_file, prompt_file)
+    environment["provider"] = {
+        "adapter_kind": adapter_kind,
+        "base_url": getattr(model, "base_url", None),
+        "api_version": getattr(model, "api_version", None),
+    }
     for scenario in scenarios:
         for rep in range(repetitions):
             seed = stable_seed(environment["git_sha"], config.id, scenario.id, rep)

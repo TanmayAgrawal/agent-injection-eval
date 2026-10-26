@@ -67,6 +67,7 @@ def build_record(
             "model": config.model,
             "adapter_kind": adapter_kind,
             "temperature": config.temperature,
+            "effort": config.effort,
             "mitigation": config.mitigation,
             "tools_version": config.tools_version,
             "policy_version": config.policy_version,
