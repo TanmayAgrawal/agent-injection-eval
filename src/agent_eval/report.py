@@ -61,6 +61,20 @@ def generate_evidence_markdown(
     lines.extend(["", "### Paired comparisons", ""])
     for name, comparison in summary["comparisons"].items():
         lines.append(f"- `{name}`: {_comparison_line(comparison)}")
+    baseline_asr = summary["configs"].get("M0", {}).get("executed_asr_injected")
+    lines.extend(["", "### Interpretation", ""])
+    if baseline_asr == 0.0:
+        lines.append(
+            "No attacker-controlled privileged call was observed in the baseline. This floor effect means "
+            "the study cannot show that M1 reduced attack success, and M2's blocking behavior was not "
+            "exercised by these model-generated calls. The result supports only that no attack success was "
+            "observed in this synthetic suite under the recorded model configuration."
+        )
+    else:
+        lines.append(
+            "Interpret the paired estimates and confidence intervals against the preregistered security and "
+            "clean-task thresholds; they apply only to the recorded scenarios and model configuration."
+        )
     lines.extend(["", "### Preregistered gate", ""])
     for name, passed in gate["checks"].items():
         lines.append(f"- {'PASS' if passed else 'INCONCLUSIVE'}: `{name}`")

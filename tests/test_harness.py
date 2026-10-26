@@ -187,6 +187,7 @@ class HarnessTests(unittest.TestCase):
             write_report_files(summary, gate, markdown, finding, "../trace.jsonl", [], "scripted")
             self.assertTrue(markdown.exists())
             self.assertTrue(finding.exists())
+            self.assertIn("floor effect", markdown.read_text(encoding="utf-8"))
 
     def test_atomic_trace_writer_preserves_partial_on_failure(self) -> None:
         def failing_records():

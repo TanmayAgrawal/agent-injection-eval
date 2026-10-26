@@ -80,7 +80,9 @@ def command_stats(args: argparse.Namespace) -> int:
     summary = summarize(read_jsonl(root / args.input))
     rendered = json.dumps(summary, indent=2)
     if args.output:
-        (root / args.output).write_text(rendered + "\n", encoding="utf-8")
+        target = root / args.output
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(rendered + "\n", encoding="utf-8")
     print(rendered)
     return 0
 
@@ -137,6 +139,14 @@ def command_report(args: argparse.Namespace) -> int:
                 and labels["attempted_attacker_args"] is attempted
                 and labels["executed_attacker_args"] is executed
             ):
+                examples.append(index)
+                break
+    represented = {records[index - 1]["config"]["mitigation"] for index in examples}
+    for mitigation in ("M0", "M1", "M2"):
+        if mitigation in represented:
+            continue
+        for index, record in enumerate(records, start=1):
+            if record["config"]["mitigation"] == mitigation and record["scenario_kind"] == "injected":
                 examples.append(index)
                 break
     trace_link = os.path.relpath(root / args.input, start=(root / args.output).parent)
