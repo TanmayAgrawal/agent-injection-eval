@@ -91,6 +91,26 @@ PYTHONPATH=src python3 -m agent_eval.cli record \
 
 Do not describe scripted-fixture results as model evidence. For hosted runs, retain the raw traces and report the model identifier, configuration hashes, provider, and run date.
 
+### Anthropic run
+
+The committed Claude configurations use the versioned `claude-haiku-4-5-20251001` model because it supports the preregistered nonzero temperature. The newer Claude Haiku 5.5 removes the temperature parameter, so switching models would require documenting a protocol deviation or amending the preregistration before collecting evidence.
+
+Keep the API key outside the repository:
+
+```bash
+export ANTHROPIC_API_KEY="your-key"
+```
+
+If the key is not scoped to a single workspace, also set `ANTHROPIC_WORKSPACE_ID`. Then commit any pending code or configuration changes and run:
+
+```bash
+make record-claude
+make report-claude
+make gate-claude
+```
+
+This records 900 live runs in `traces/live/claude-haiku-4-5.jsonl`. The directory is ignored by Git until the traces have been inspected for secrets and intentionally force-added as an evidence artifact. The API version defaults to `2023-06-01` and can be overridden with `ANTHROPIC_VERSION`; preserve the chosen value alongside the run when reporting results.
+
 ## Replay, compare, and report
 
 ```bash
