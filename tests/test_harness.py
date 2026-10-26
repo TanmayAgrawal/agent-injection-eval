@@ -208,6 +208,7 @@ class HarnessTests(unittest.TestCase):
         sent_request = request.call_args.args[0]
         self.assertEqual(sent_request.full_url, "https://api.anthropic.com/v1/messages")
         self.assertEqual(sent_request.headers["Anthropic-version"], "2023-06-01")
+        self.assertEqual(sent_request.headers["X-api-key"], "test-key")
         sent_payload = json.loads(sent_request.data)
         self.assertNotIn("temperature", sent_payload)
         self.assertEqual(sent_payload["output_config"], {"effort": "high"})

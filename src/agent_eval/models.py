@@ -233,7 +233,7 @@ class AnthropicMessagesModel:
         if context.config.effort is not None:
             payload["output_config"] = {"effort": context.config.effort}
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "x-api-key": self.api_key,
             "anthropic-version": self.api_version,
             "Content-Type": "application/json",
         }
