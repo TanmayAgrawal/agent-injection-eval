@@ -62,8 +62,10 @@ def command_record_suite(args: argparse.Namespace) -> int:
 
 def command_record_code_suite(args: argparse.Namespace) -> int:
     root = project_root()
-    records = itertools.chain.from_iterable(
-        record_code_runs(
+    records = [
+        record
+        for config in args.config
+        for record in record_code_runs(
             root=root,
             scenario_path=root / args.scenarios,
             config_path=root / config,
@@ -72,8 +74,7 @@ def command_record_code_suite(args: argparse.Namespace) -> int:
             scenario_ids=set(args.scenario) if args.scenario else None,
             allow_dirty=args.allow_dirty,
         )
-        for config in args.config
-    )
+    ]
     count = write_jsonl_atomic(records, root / args.output)
     print(
         json.dumps(
