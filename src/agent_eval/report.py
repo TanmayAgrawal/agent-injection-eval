@@ -43,29 +43,57 @@ def generate_evidence_markdown(
     example_lines: list[int],
     adapter_kind: str,
     run_metadata: dict[str, Any] | None = None,
+    task_domain: str = "email",
 ) -> str:
     metadata = run_metadata or {}
+    if task_domain == "code":
+        question = (
+            "Does a mitigation reduce privileged patches containing attacker-controlled paths or content "
+            "after an agent reads an injected repository file, without materially reducing clean-task success?"
+        )
+        setup = (
+            "M0 is the baseline, M1 isolates repository file content in the prompt, and M2 enforces "
+            "an external patch path/content policy. All repository reads and patch applications are mocked."
+        )
+        proposed_control = (
+            "Treat repository content as untrusted data and bind patch paths to explicit user authorization "
+            "outside the model. Reject traversal, protected paths, and forbidden command content before apply."
+        )
+    else:
+        question = (
+            "Does a mitigation reduce privileged tool calls containing attacker-controlled arguments after "
+            "an agent reads an injected retrieved document, without materially reducing clean-task success?"
+        )
+        setup = (
+            "M0 is the baseline, M1 isolates retrieved content in the prompt, and M2 enforces an external "
+            "recipient-authorization policy."
+        )
+        proposed_control = (
+            "Treat retrieved content as untrusted data and enforce privileged arguments against explicit user "
+            "authorization outside the model. Prompt-level isolation and boundary enforcement make different "
+            "claims and require separate evidence."
+        )
     lines = [
         "# Evaluation Evidence Record",
         "",
         "## What these results do not show",
         "",
         "This study does not establish production safety or universal prompt-injection resistance. "
-        "It uses synthetic documents, hand-written attacks, mocked tools, and one model configuration. "
+        "It uses synthetic inputs, hand-written attacks, mocked tools, and one model configuration. "
         + (
             "The committed reference run uses a scripted stochastic fixture to validate the evaluation software; it is not evidence about a deployed language model."
-            if adapter_kind == "scripted"
+            if adapter_kind.startswith("scripted")
             else "Hosted-model results are specific to the recorded model version, prompt, provider, and run date."
         ),
         "",
         "## Question",
         "",
-        "Does a mitigation reduce privileged tool calls containing attacker-controlled arguments after an agent reads an injected retrieved document, without materially reducing clean-task success?",
+        question,
         "",
         "## Setup",
         "",
         f"The evidence set contains {summary['run_count']} recorded runs across clean and injected synthetic scenarios. "
-        "M0 is the baseline, M1 isolates retrieved content in the prompt, and M2 enforces an external recipient-authorization policy.",
+        + setup,
         "",
         f"- Model: `{', '.join(metadata.get('models', ['not recorded']))}`",
         f"- Adapter: `{', '.join(metadata.get('adapters', [adapter_kind]))}`",
@@ -119,7 +147,7 @@ def generate_evidence_markdown(
             "",
             "## Limitations",
             "",
-            "- Synthetic tasks and document corpus may not represent production distributions.",
+            "- Synthetic tasks and input corpus may not represent production distributions.",
             "- Hand-written injection families provide limited attack diversity.",
             "- The primary grader detects structured tool arguments, not downstream semantic harm.",
             "- Scenario repetitions measure stochastic variation but do not add independent scenario diversity.",
@@ -127,11 +155,11 @@ def generate_evidence_markdown(
             "",
             "## Proposed controls",
             "",
-            "Treat retrieved content as untrusted data and enforce privileged arguments against explicit user authorization outside the model. Prompt-level isolation and boundary enforcement make different claims and require separate evidence.",
+            proposed_control,
             "",
             "## Retest triggers",
             "",
-            "Retest after a model, system prompt, retrieval pipeline, tool schema, argument normalizer, authorization policy, or document-ingestion change.",
+            "Retest after a model, system prompt, retrieval pipeline, tool schema, argument normalizer, authorization policy, or input-ingestion change.",
             "",
         ]
     )
@@ -143,15 +171,27 @@ def generate_finding(
     gate: dict[str, Any],
     trace_path: str,
     run_metadata: dict[str, Any] | None = None,
+    task_domain: str = "email",
 ) -> dict[str, Any]:
-    return {
-        "schema_version": "0.1-vendor-neutral",
-        "question": "Can retrieved attacker instructions cause a privileged tool call with attacker-controlled arguments?",
-        "path": ["synthetic_document", "retrieval", "agent", "authorization_policy", "mocked_tool"],
-        "controls_under_test": [
+    if task_domain == "code":
+        question = "Can injected repository content cause a patch with attacker-controlled path or content?"
+        path = ["synthetic_repo_file", "read_repo_file", "code_agent", "patch_policy", "mock_apply_patch"]
+        controls = [
+            {"id": "M1", "type": "behavioral", "description": "repository-content isolation"},
+            {"id": "M2", "type": "boundary", "description": "patch path and content authorization"},
+        ]
+    else:
+        question = "Can retrieved attacker instructions cause a privileged tool call with attacker-controlled arguments?"
+        path = ["synthetic_document", "retrieval", "agent", "authorization_policy", "mocked_tool"]
+        controls = [
             {"id": "M1", "type": "behavioral", "description": "retrieved-content isolation"},
             {"id": "M2", "type": "boundary", "description": "explicit argument authorization"},
-        ],
+        ]
+    return {
+        "schema_version": "0.1-vendor-neutral",
+        "question": question,
+        "path": path,
+        "controls_under_test": controls,
         "result": {"summary": summary, "gate": gate},
         "run_metadata": run_metadata or {},
         "evidence": {"trace_jsonl": trace_path},
@@ -169,6 +209,7 @@ def write_report_files(
     example_lines: list[int],
     adapter_kind: str,
     run_metadata: dict[str, Any] | None = None,
+    task_domain: str = "email",
 ) -> None:
     markdown_target = Path(destination)
     finding_target = Path(finding_destination)
@@ -176,11 +217,14 @@ def write_report_files(
     finding_target.parent.mkdir(parents=True, exist_ok=True)
     markdown_target.write_text(
         generate_evidence_markdown(
-            summary, gate, trace_path, example_lines, adapter_kind, run_metadata
+            summary, gate, trace_path, example_lines, adapter_kind, run_metadata, task_domain
         ),
         encoding="utf-8",
     )
     finding_target.write_text(
-        json.dumps(generate_finding(summary, gate, trace_path, run_metadata), indent=2) + "\n",
+        json.dumps(
+            generate_finding(summary, gate, trace_path, run_metadata, task_domain), indent=2
+        )
+        + "\n",
         encoding="utf-8",
     )

@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 
+from .code_agent import record_code_runs, replay_code_records
 from .hashing import sha256_file
 from .replay import replay_records
 from .report import write_report_files
@@ -59,6 +60,34 @@ def command_record_suite(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_record_code_suite(args: argparse.Namespace) -> int:
+    root = project_root()
+    records = itertools.chain.from_iterable(
+        record_code_runs(
+            root=root,
+            scenario_path=root / args.scenarios,
+            config_path=root / config,
+            repetitions=args.repetitions,
+            workers=args.workers,
+            scenario_ids=set(args.scenario) if args.scenario else None,
+            allow_dirty=args.allow_dirty,
+        )
+        for config in args.config
+    )
+    count = write_jsonl_atomic(records, root / args.output)
+    print(
+        json.dumps(
+            {
+                "command": "record-code-suite",
+                "configs": args.config,
+                "records": count,
+                "output": args.output,
+            }
+        )
+    )
+    return 0
+
+
 def command_replay(args: argparse.Namespace) -> int:
     root = project_root()
     records = read_jsonl(root / args.input)
@@ -67,6 +96,23 @@ def command_replay(args: argparse.Namespace) -> int:
         write_jsonl(replayed, root / args.output)
     result = {
         "command": "replay",
+        "records": len(replayed),
+        "mismatches": len(mismatches),
+        "mismatch_run_ids": mismatches[:10],
+        "output": args.output,
+    }
+    print(json.dumps(result))
+    return 1 if mismatches else 0
+
+
+def command_replay_code(args: argparse.Namespace) -> int:
+    root = project_root()
+    records = read_jsonl(root / args.input)
+    replayed, mismatches = replay_code_records(records, root / args.scenarios)
+    if args.output:
+        write_jsonl(replayed, root / args.output)
+    result = {
+        "command": "replay-code",
         "records": len(replayed),
         "mismatches": len(mismatches),
         "mismatch_run_ids": mismatches[:10],
@@ -125,6 +171,8 @@ def command_report(args: argparse.Namespace) -> int:
     gate = evaluate_gate(summary, clean_margin=args.clean_margin)
     adapter_kinds = {record["config"]["adapter_kind"] for record in records}
     adapter_kind = next(iter(adapter_kinds)) if len(adapter_kinds) == 1 else "mixed"
+    task_domains = {record.get("task_domain", "email") for record in records}
+    task_domain = next(iter(task_domains)) if len(task_domains) == 1 else "mixed"
     examples: list[int] = []
     desired = [
         ("M0", "injected", True, True),
@@ -183,6 +231,7 @@ def command_report(args: argparse.Namespace) -> int:
         examples,
         adapter_kind,
         run_metadata,
+        task_domain,
     )
     print(json.dumps({"command": "report", "output": args.output, "finding": args.finding}))
     return 0
@@ -213,11 +262,31 @@ def build_parser() -> argparse.ArgumentParser:
     suite.add_argument("--allow-dirty", action="store_true")
     suite.set_defaults(func=command_record_suite)
 
+    code_suite = subparsers.add_parser(
+        "record-code-suite", help="record the synthetic code-agent scenario family"
+    )
+    code_suite.add_argument("--config", action="append", required=True)
+    code_suite.add_argument("--scenarios", default="scenarios/code-agent-scenarios.json")
+    code_suite.add_argument("--output", required=True)
+    code_suite.add_argument("--repetitions", type=int, default=10)
+    code_suite.add_argument("--workers", type=int, default=1)
+    code_suite.add_argument("--scenario", action="append")
+    code_suite.add_argument("--allow-dirty", action="store_true")
+    code_suite.set_defaults(func=command_record_code_suite)
+
     replay = subparsers.add_parser("replay", help="re-run parsing, policy, mocked tools, and grading")
     replay.add_argument("--input", required=True)
     replay.add_argument("--scenarios", default="scenarios/scenarios.json")
     replay.add_argument("--output")
     replay.set_defaults(func=command_replay)
+
+    code_replay = subparsers.add_parser(
+        "replay-code", help="replay code-agent policy, mocked patch tool, and grading"
+    )
+    code_replay.add_argument("--input", required=True)
+    code_replay.add_argument("--scenarios", default="scenarios/code-agent-scenarios.json")
+    code_replay.add_argument("--output")
+    code_replay.set_defaults(func=command_replay_code)
 
     stats = subparsers.add_parser("stats", help="summarize a trace set and bootstrap comparisons")
     stats.add_argument("--input", required=True)

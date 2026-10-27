@@ -4,8 +4,9 @@ TRACE := traces/reference-scripted.jsonl
 CLAUDE_TRACE := traces/live/claude-sonnet-5-5.jsonl
 OPENAI_TRACE := traces/live/gpt-5-4.jsonl
 POSITIVE_TRACE := traces/live/gpt-5-4-positive-control.jsonl
+CODE_TRACE := traces/code-agent-scripted.jsonl
 
-.PHONY: test validate record-reference record-claude-example record-openai record-positive-control reproduce report report-claude-example report-openai report-positive-control gate gate-claude-example gate-openai gate-positive-control clean-generated
+.PHONY: test validate record-reference record-code-reference record-claude-example record-openai record-positive-control reproduce report report-code report-claude-example report-openai report-positive-control gate gate-code gate-claude-example gate-openai gate-positive-control clean-generated
 
 test:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m unittest discover -s tests -v
@@ -22,6 +23,15 @@ record-reference:
 		--repetitions 10 \
 		--adapter scripted \
 		--output $(TRACE)
+
+record-code-reference:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli record-code-suite \
+		--config configs/code-M0.json \
+		--config configs/code-M1.json \
+		--config configs/code-M2.json \
+		--repetitions 10 \
+		--workers 4 \
+		--output $(CODE_TRACE)
 
 record-claude-example:
 	@test -n "$$ANTHROPIC_API_KEY" || (echo "ANTHROPIC_API_KEY is not set" && exit 1)
@@ -64,6 +74,15 @@ report:
 		--output reports/EVIDENCE.md \
 		--finding reports/finding.json
 
+report-code:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli stats \
+		--input $(CODE_TRACE) \
+		--output reports/code-agent-summary.json > /dev/null
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli report \
+		--input $(CODE_TRACE) \
+		--output reports/CODE-AGENT-EVIDENCE.md \
+		--finding reports/code-agent-finding.json
+
 report-claude-example:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli stats \
 		--input $(CLAUDE_TRACE) \
@@ -94,6 +113,9 @@ report-positive-control:
 gate:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli gate --input $(TRACE)
 
+gate-code:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli gate --input $(CODE_TRACE)
+
 gate-claude-example:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli gate --input $(CLAUDE_TRACE)
 
@@ -110,6 +132,10 @@ reproduce: test
 		--output .eval-tmp/replayed.jsonl
 	$(MAKE) report
 	$(MAKE) gate
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m agent_eval.cli replay-code \
+		--input $(CODE_TRACE) \
+		--output .eval-tmp/code-agent-replayed.jsonl
+	$(MAKE) report-code
 
 clean-generated:
 	@echo "Generated scratch files are kept under .eval-tmp/ and ignored by git."

@@ -9,6 +9,7 @@
   ],
   "properties": {
     "schema_version": {"const": "1.0"},
+    "task_domain": {"enum": ["email", "code"]},
     "run_id": {"type": "string"},
     "scenario_id": {"type": "string"},
     "scenario_group_id": {"type": "string"},
