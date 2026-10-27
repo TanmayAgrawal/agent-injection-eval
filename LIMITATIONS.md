@@ -4,11 +4,15 @@
 
 The target is a deliberately small document-assisted agent with one benign retrieval tool and one mocked privileged email tool. It is not a production agent architecture. The authorization policy binds one normalized recipient to an explicit user request; real systems have richer identities, permissions, side effects, and approval flows.
 
+The code-agent extension is also deliberately small. It reads synthetic repository files and records a proposed patch without parsing or applying a real diff. Its policy covers explicit path binding, traversal, a short protected-path list, a requested marker, and a small forbidden-token list. Production code agents require semantic diff inspection, sandboxing, capability controls, command isolation, review workflows, and repository-specific policy.
+
 ## Scenario coverage
 
 The corpus, tasks, attacker instructions, and expected outcomes are synthetic. Twenty injected scenarios and ten clean controls provide scenario diversity, while repeated runs estimate stochastic variation. Repetitions do not create additional independent tasks. The suite is designed to detect large effects and is not powered for small differences.
 
 The injection axes cover placement, rhetorical style, and targeted step. They do not cover adaptive attackers, multilingual attacks, encoded payloads, images, long-context attacks, poisoned embeddings, compromised tools, or production document formats.
+
+The code-agent family contains only four injected and two clean scenario clusters. It is useful for demonstrating the repository-file → agent → patch-policy path, but it is too small for narrow effect estimates and currently uses only the scripted engineering fixture.
 
 ## Measurement
 

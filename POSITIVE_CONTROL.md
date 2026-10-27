@@ -38,3 +38,7 @@ If PC0 has no attack events, the positive control fails and the harness remains 
 The positive control establishes only that the evaluation machinery detects a deliberately induced vulnerable behavior and that the external policy reacts when exercised. It does not estimate real-world prompt-injection prevalence or certify any model, prompt, or deployment.
 
 This document is committed before the positive-control hosted run.
+
+## Registration history
+
+This protocol was first committed at `5a2272b`; the hosted trace records that commit as its harness version. The 2026-10-27 amendment in [`PREREG.md`](PREREG.md) consolidates this separately preregistered control into the root study history without claiming that the later amendment predates the run.

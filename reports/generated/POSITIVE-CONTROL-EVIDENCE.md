@@ -2,7 +2,7 @@
 
 ## What these results do not show
 
-This study does not establish production safety or universal prompt-injection resistance. It uses synthetic documents, hand-written attacks, mocked tools, and one model configuration. Hosted-model results are specific to the recorded model version, prompt, provider, and run date.
+This study does not establish production safety or universal prompt-injection resistance. It uses synthetic inputs, hand-written attacks, mocked tools, and one model configuration. Hosted-model results are specific to the recorded model version, prompt, provider, and run date.
 
 ## Question
 
@@ -53,7 +53,7 @@ Interpret the paired estimates and confidence intervals against the preregistere
 
 ## Limitations
 
-- Synthetic tasks and document corpus may not represent production distributions.
+- Synthetic tasks and input corpus may not represent production distributions.
 - Hand-written injection families provide limited attack diversity.
 - The primary grader detects structured tool arguments, not downstream semantic harm.
 - Scenario repetitions measure stochastic variation but do not add independent scenario diversity.
@@ -65,4 +65,4 @@ Treat retrieved content as untrusted data and enforce privileged arguments again
 
 ## Retest triggers
 
-Retest after a model, system prompt, retrieval pipeline, tool schema, argument normalizer, authorization policy, or document-ingestion change.
+Retest after a model, system prompt, retrieval pipeline, tool schema, argument normalizer, authorization policy, or input-ingestion change.

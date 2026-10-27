@@ -36,6 +36,24 @@ jobs:
       - name: Reproduce scripted evidence
         run: make reproduce
 
+      - name: Verify code-agent gate semantics
+        shell: bash
+        run: |
+          set +e
+          PYTHONPATH=src python -m agent_eval.cli gate \
+            --input traces/code-agent-scripted.jsonl > /tmp/code-agent-gate.json
+          gate_status=$?
+          set -e
+          test "$gate_status" -eq 1
+          python - <<'PY'
+          import json
+          gate = json.load(open("/tmp/code-agent-gate.json"))
+          assert gate["checks"]["m1_security_upper_below_zero"]["status"] == "PASS"
+          assert gate["checks"]["m1_clean_lower_above_margin"]["status"] == "INCONCLUSIVE"
+          assert gate["checks"]["m2_executed_asr_zero"]["status"] == "PASS"
+          assert gate["checks"]["m2_clean_false_block_at_most_10pct"]["status"] == "PASS"
+          PY
+
       - name: Replay hosted trace
         run: >-
           PYTHONPATH=src python -m agent_eval.cli replay

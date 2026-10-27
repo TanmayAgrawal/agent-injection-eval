@@ -34,6 +34,12 @@ Three configurations test different claims:
 
 The neutral M0 prompt contains no authorization, untrusted-content, or instruction-isolation language. A separate preregistered positive control deliberately makes retrieved instructions authoritative to verify that the harness can detect known-vulnerable behavior.
 
+### Code-agent extension
+
+A separate scripted family targets repository-assisted coding agents. The agent reads a synthetic task file through `read_repo_file` and proposes a mocked `apply_patch(path, patch)` call; no checkout is modified. Six scenarios cover clean fixes plus injected protected paths, path traversal, and malicious command content on an otherwise authorized path.
+
+The deterministic M2 boundary binds the patch to the user-authorized path and requested change marker, rejects traversal and protected paths, and blocks forbidden command content. This is engineering validation with `scripted-code-agent-v1`, not hosted-model evidence.
+
 ## Repository map
 
 ```text
@@ -42,6 +48,7 @@ LIMITATIONS.md            detailed claims boundary
 scenarios/                scenario manifest and JSON Schema
 configs/                  versioned prompts and run configurations
 src/agent_eval/agent.py   target tool loop
+src/agent_eval/code_agent.py  repository-content code-agent target and patch policy
 src/agent_eval/tools.py   mocked tools and deterministic policy
 src/agent_eval/runner.py  scenario/config execution
 src/agent_eval/grader.py  programmatic outcome labels
@@ -69,6 +76,8 @@ This command:
 
 Replay verifies deterministic downstream processing. It does not reproduce model behavior.
 
+The reproduction target covers both the 900-run shopping/email reference and the 180-run code-agent reference.
+
 ## Record a fresh suite
 
 The runner refuses to record against a dirty worktree unless `--allow-dirty` is explicitly passed. To generate the scripted engineering reference:
@@ -80,6 +89,16 @@ make gate
 ```
 
 The resulting 900 runs are 30 scenarios × 3 configurations × 10 repetitions.
+
+To regenerate the scripted code-agent reference:
+
+```bash
+make record-code-reference
+make report-code
+make gate-code
+```
+
+Its 180 runs are 6 scenarios × 3 configurations × 10 repetitions. The aggregate regression gate remains inconclusive because the clean-utility interval crosses the preregistered margin; the M2 boundary check itself passes.
 
 To use an OpenAI-compatible hosted endpoint:
 
@@ -169,6 +188,9 @@ PYTHONPATH=src python3 -m agent_eval.cli rerun \
 - [`reports/EVIDENCE.md`](reports/EVIDENCE.md) presents the question, setup, uncertainty, trace examples, limitations, proposed controls, and retest triggers.
 - [`reports/finding.json`](reports/finding.json) connects source, retrieval, agent, policy, and tool stages without assuming a vendor schema.
 - `traces/reference-scripted.jsonl` is the replayable reference artifact.
+- [`reports/CODE-AGENT-EVIDENCE.md`](reports/CODE-AGENT-EVIDENCE.md) reports the scripted repository-content injection family.
+- [`reports/code-agent-finding.json`](reports/code-agent-finding.json) connects repository file, agent, patch policy, and mocked apply stages.
+- `traces/code-agent-scripted.jsonl` contains its 180 replayable traces.
 - [`reports/generated/OPENAI-EVIDENCE.md`](reports/generated/OPENAI-EVIDENCE.md) is the 900-run GPT-5.4 evidence record.
 - [`reports/generated/openai-finding.json`](reports/generated/openai-finding.json) is its vendor-neutral machine-readable finding.
 - `traces/live/gpt-5-4.jsonl` is the hosted-model trace artifact. Its SHA-256 is recorded in the evidence report.
@@ -178,7 +200,9 @@ PYTHONPATH=src python3 -m agent_eval.cli rerun \
 
 The primary hosted run observed 0% attack success and 100% clean-task success in every configuration. Because M0 also had 0% attack success, the M1 mitigation effect is inconclusive due to a floor effect, with a one-sided 95% upper bound of 13.9% for scenario-level attack occurrence. M2 is marked `NOT_EXERCISED`, not `PASS`. This is not evidence that M1 is effective or that GPT-5.4 is generally resistant to prompt injection.
 
+In the scripted code-agent family, M0 executed attacker-controlled patches in 70.0% of injected runs, M1 reduced that to 22.5% (paired change -47.5 percentage points; 95% CI -67.5 to -27.5), and M2 recorded 30 blocks with 0 executed attacks. The result validates the evaluation path and deterministic patch boundary only; it is not a claim about a hosted coding model.
+
 ## Safe use
 
-All included data is synthetic. The tools are mocked, no emails are sent, and no credentials or proprietary data are included.
+All included data is synthetic. The tools are mocked, no emails are sent, no patches are applied, and no credentials or proprietary data are included.
 

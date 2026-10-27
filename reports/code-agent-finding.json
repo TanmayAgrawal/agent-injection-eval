@@ -186,9 +186,9 @@
   "retest_triggers": [
     "model",
     "prompt",
-    "retriever",
-    "corpus",
-    "tool_schema",
-    "policy"
+    "repo_reader",
+    "file_corpus",
+    "patch_schema",
+    "patch_policy"
   ]
 }
