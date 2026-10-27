@@ -4,6 +4,7 @@ import json
 import os
 import platform
 import sys
+from itertools import chain
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
@@ -107,7 +108,13 @@ def write_jsonl(records: Iterable[dict[str, Any]], destination: str | Path) -> i
 def write_jsonl_atomic(records: Iterable[dict[str, Any]], destination: str | Path) -> int:
     target = Path(destination)
     partial = target.with_name(target.name + ".partial")
-    count = write_jsonl(records, partial)
+    iterator = iter(records)
+    try:
+        first = next(iterator)
+    except StopIteration:
+        count = write_jsonl([], partial)
+    else:
+        count = write_jsonl(chain([first], iterator), partial)
     os.replace(partial, target)
     return count
 

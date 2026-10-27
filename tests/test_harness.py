@@ -262,6 +262,18 @@ class HarnessTests(unittest.TestCase):
             self.assertTrue(target.exists())
             self.assertFalse(Path(str(target) + ".partial").exists())
 
+    def test_atomic_trace_writer_does_not_create_partial_before_iteration(self) -> None:
+        def failing_before_first():
+            raise RuntimeError("validation failed")
+            yield
+
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "trace.jsonl"
+            with self.assertRaisesRegex(RuntimeError, "validation failed"):
+                write_jsonl_atomic(failing_before_first(), target)
+            self.assertFalse(target.exists())
+            self.assertFalse(Path(str(target) + ".partial").exists())
+
     def test_anthropic_adapter_parses_tool_use(self) -> None:
         class FakeResponse:
             def __enter__(self):
