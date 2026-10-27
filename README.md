@@ -2,6 +2,10 @@
 
 [![CI](https://github.com/TanmayAgrawal/agent-injection-eval/actions/workflows/ci.yml/badge.svg)](https://github.com/TanmayAgrawal/agent-injection-eval/actions/workflows/ci.yml)
 
+- Evaluates retrieved prompt injection in tool-using agents with structured traces, deterministic replay, and regression gates.
+- **Headline result:** a deliberately vulnerable GPT-5.4 control fell from 54.5% executed attack success under M0 to 0% under M1, while M2 blocked all 109 attempted policy violations.
+- **Reproduce:** clone the repository and run `make reproduce` with Python 3.11 or later; no API key or third-party runtime dependency is required.
+
 ## What the results do not show
 
 This project does not establish production safety or universal prompt-injection resistance. It evaluates a toy agent with synthetic documents, mocked tools, hand-written attacks, and a narrow programmatic grader. The scripted reference traces validate the evaluation software only. The deliberately naive positive control validates harness sensitivity, not the vulnerability of a production agent. Hosted-model evidence applies only to the committed GPT-5.4 snapshot, prompts, tools, synthetic scenarios, and recorded run windows.
